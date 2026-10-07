@@ -463,7 +463,7 @@ strong{font-weight:700}
       <table class="who">
         <thead><tr><th>Équipement</th><th>Couche</th><th>Ce qu'il lit</th><th>Ce qu'il modifie</th><th>Sa table</th></tr></thead>
         <tbody>
-          <tr><td>Switch</td><td><span class="lv lv-2">2 · Liaison</span></td><td>MAC de destination</td><td>Rien</td><td>Table MAC (CAM) : adresse MAC → port</td></tr>
+          <tr><td>Switch</td><td><span class="lv lv-2">2 · Liaison</span></td><td>MAC de destination, et MAC source pour apprendre</td><td>Rien</td><td>Table MAC (CAM) : adresse MAC → port</td></tr>
           <tr><td>Routeur</td><td><span class="lv lv-3">3 · Réseau</span></td><td>IP de destination</td><td>En-tête Ethernet (nouvelles MAC), TTL − 1</td><td>Table de routage : réseau → sortie</td></tr>
           <tr><td>Box</td><td><span class="lv lv-4">3 et 4</span></td><td>IP et port de destination</td><td>IP et port (NAT), MAC, TTL − 1</td><td>Table NAT, table ARP</td></tr>
           <tr><td>PC</td><td><span class="lv lv-7">1 à 7</span></td><td>Tout, en remontant les couches</td><td>Rien : il désencapsule</td><td>Ports ouverts : port → programme</td></tr>
@@ -1980,7 +1980,7 @@ const STEPS = [
   },
   {
     title: 'Le switch aiguille la trame', chip: [2, 'Couche 2 · Liaison'],
-    body: `<p>La trame entre par le port 1 du switch. Il ne lit que la <strong>MAC de destination</strong> et consulte sa <strong>table MAC</strong> : <code>3c:52:82:4f:a1:7e</code> se trouve derrière le port 2.</p>
+    body: `<p>La trame entre par le port 1 du switch. Pour l'aiguiller, il lit la <strong>MAC de destination</strong> et consulte sa <strong>table MAC</strong> : <code>3c:52:82:4f:a1:7e</code> se trouve derrière le port 2. Cette table, il la remplit tout seul en notant la MAC source de chaque trame qui arrive.</p>
 <p>Il envoie la trame sur ce port uniquement, sans rien y changer. Face à une MAC inconnue, il l'enverrait sur tous les ports (inondation, ou <em>flooding</em>).</p>
 <div class="keyline">Le switch n'a pas besoin d'adresse IP pour travailler : il reste en couche 2.</div>`,
     setup() { placeAt('box'); layers(ALL); setPK(R_LAN, ALL); where(WHERE.box); setTable(macTable()); },
@@ -2035,7 +2035,7 @@ const STEPS = [
 <ul><li><strong>Encapsulation</strong> au départ, <strong>désencapsulation</strong> à l'arrivée.</li>
 <li>Les <strong>routeurs</strong> lisent l'IP et refont la trame : les MAC de la trame changent à chaque saut, le TTL baisse.</li>
 <li>La <strong>box</strong> traduit l'adresse publique en adresse privée grâce à sa table NAT.</li>
-<li>Le <strong>switch</strong> ne lit que la MAC de destination.</li></ul>
+<li>Le <strong>switch</strong> ne lit que les adresses MAC : la destination pour aiguiller, la source pour apprendre.</li></ul>
 <div class="keyline">Les couleurs suivent les couches : bleu pour la couche 3 (les routeurs, l'en-tête IP), orange pour la couche 2 (le switch, la trame).</div>
 <p><button class="btn primary" id="go-game" type="button">Passer au jeu : trouve la panne →</button></p>`,
     setup() { if (TP) TP.show(false); setPK(null); setTable(''); if (SCREENS.pc) SCREENS.pc.draw('page'); },
