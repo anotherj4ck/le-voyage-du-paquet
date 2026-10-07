@@ -1,0 +1,20 @@
+# Fichiers système : macOS
+.DS_Store
+._*
+
+# Fichiers système : Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Fichiers système : Linux
+*~
+.directory
+.Trash-*
+
+# Dépendances Node
+node_modules/
+
+# Réglages de l'éditeur
+.vscode/
