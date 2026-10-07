@@ -1600,10 +1600,11 @@ function initTour() {
 /* =====================================================================
    Jeu : trouve la panne — données et simulation
    ===================================================================== */
+const { FIELDS, netRange, usableText, netText, freshState, simulate } = VDP.net;
 const OK_CFG = { ip: '192.168.1.10', mask: '255.255.255.0', gw: '192.168.1.1' };
 const LAPTOP_CFG = { ip: '192.168.1.11', mask: '255.255.255.0', gw: '192.168.1.1' };
 const CONSOLE_CFG = { ip: '192.168.1.12', mask: '255.255.255.0', gw: '192.168.1.1' };
-const FIELDS = ['ip', 'mask', 'gw'];
+const REF = { boxIp: IP.boxL, laptop: LAPTOP_CFG }; // réseau de référence de la simulation
 const FIELD_LABEL = { ip: 'Adresse IP', mask: 'Masque', gw: 'Passerelle' };
 // valeurs proposées dans l'éditeur : la bonne, la valeur actuelle, et des pièges qui ne marchent pas
 const CHOICES = {
@@ -1614,50 +1615,6 @@ const CHOICES = {
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const okColor = () => cssVar('--ok') || '#1b8a4a';
 const badColor = () => cssVar('--bad') || '#cf3a40';
-
-const ipInt = a => a.split('.').reduce((n, x) => ((n << 8) + Number(x)) >>> 0, 0);
-const intIp = n => [24, 16, 8, 0].map(b => (n >>> b) & 255).join('.');
-function netRange(c) {
-  const m = ipInt(c.mask), net = (ipInt(c.ip) & m) >>> 0, bc = (net | (~m >>> 0)) >>> 0;
-  return [intIp(net), intIp(bc)];
-}
-function rangeText(c) {
-  const [a, b] = netRange(c), pa = a.split('.'), pb = b.split('.');
-  return pa.slice(0, 3).join('.') === pb.slice(0, 3).join('.') ? `${a} à .${pb[3]}` : `${a} à ${b}`;
-}
-// Adresses utilisables : toutes sauf la première (adresse du réseau) et la dernière (diffusion)
-function usableText(c) {
-  const [a, b] = netRange(c).map(ipInt);
-  if (b - a < 2) return 'aucune';
-  const f = intIp(a + 1), l = intIp(b - 1), pf = f.split('.'), pl = l.split('.');
-  return pf.slice(0, 3).join('.') === pl.slice(0, 3).join('.') ? `.${pf[3]} à .${pl[3]}` : `${f} à ${l}`;
-}
-const netText = c => `${rangeText(c)} (utilisables : ${usableText(c)})`;
-function configProblem(c) {
-  if (c.ip === IP.boxL) return `Conflit d'adresses : ${IP.boxL} est déjà utilisée par la box.`;
-  if (c.gw === c.ip) return `La passerelle indiquée (${c.gw}) est l'adresse du PC lui-même.`;
-  const m = ipInt(c.mask);
-  if (((ipInt(c.ip) & m) >>> 0) !== ((ipInt(c.gw) & m) >>> 0)) {
-    return `La passerelle ${c.gw} n'est pas dans le réseau du PC (${rangeText(c)}, utilisables : ${usableText(c)}) : il ne sait pas comment la joindre, le paquet ne part pas.`;
-  }
-  return null;
-}
-const freshState = () => ({ pcCable: true, switchOn: true, fiberOk: true, pc: { ...OK_CFG } });
-
-// Où s'arrête un paquet de test envoyé vers Internet ?
-function simulate(from) {
-  const st = G.st;
-  const cfg = from === 'pc' ? st.pc : LAPTOP_CFG;
-  // Sans lien physique (câble débranché, ou switch éteint en face), la carte voit « média déconnecté » : rien ne part
-  if ((from === 'pc' && !st.pcCable) || !st.switchOn) {
-    return { stop: from, msg: `Le paquet ne quitte même pas ${from === 'pc' ? 'le PC' : 'le portable'} : la carte réseau signale « câble réseau débranché » (média déconnecté).` };
-  }
-  const pb = from === 'pc' ? configProblem(cfg) : null;
-  if (pb) return { stop: 'pc', msg: pb };
-  if (cfg.gw !== IP.boxL) return { stop: 'sw', arp: cfg.gw, msg: `Pour sortir, le PC cherche sa passerelle et demande à tout le réseau « Qui a ${cfg.gw} ? ». Personne ne répond : aucun appareil n'a cette adresse.` };
-  if (!st.fiberOk) return { stop: 'box', msg: "La box reçoit le paquet mais ne peut pas l'envoyer sur Internet : la fibre ne reçoit aucun signal." };
-  return { ok: true };
-}
 
 /* ---------- les tickets ---------- */
 const TICKETS = [
@@ -1714,11 +1671,10 @@ const COACH = [
 ];
 
 const G = {
-  run: 0, idx: 0, random: false, ticket: TICKETS[0], text: '', st: freshState(), st0: null,
+  run: 0, idx: 0, random: false, ticket: TICKETS[0], text: '', st: freshState(OK_CFG), st0: null,
   stars: 3, total: 0, results: [], randomSolved: 0, busy: false, solved: false, editing: false,
   sel: null, coach: -1, lastRandom: -1, finished: false,
 };
-const faultsOf = st => (st.pcCable ? 0 : 1) + (st.switchOn ? 0 : 1) + (st.fiberOk ? 0 : 1) + FIELDS.filter(k => st.pc[k] !== OK_CFG[k]).length;
 
 /* =====================================================================
    Jeu : trouve la panne — interface, réparations, animations
@@ -1967,7 +1923,7 @@ async function gameTest(from) {
   setTools(false);
   renderEq();
   renderCoach();
-  const r = simulate(from);
+  const r = simulate(G.st, from, REF);
   const who = from === 'pc' ? 'le PC fixe' : 'le portable';
   result(`<b>Test en cours depuis ${who}…</b>Un paquet de test (ping) part vers Internet.`, 'info');
   try { await animateTest(from, r); } catch (e) { if (e !== CANCEL) console.error(e); return; }
@@ -2026,7 +1982,7 @@ function startTicket(i, random = false) {
   gameCtx = makeCtx(1);
   disposeTestPks();
   G.idx = i; G.random = random; G.ticket = TICKETS[i];
-  G.st = freshState();
+  G.st = freshState(OK_CFG);
   G.ticket.apply(G.st, random && VARIANTS[G.ticket.id] ? pick(VARIANTS[G.ticket.id]) : undefined);
   G.st0 = clone(G.st);
   G.text = random && VARIANTS[G.ticket.id] ? RANDOM_TEXT : G.ticket.text;
@@ -2085,7 +2041,7 @@ function exitGame() {
   gameCtx = makeCtx(1);
   disposeTestPks();
   hideCard();
-  applyHomeVisuals(freshState());
+  applyHomeVisuals(freshState(OK_CFG));
   clearTagClasses('hot', 'coach');
   $$('.coach-target').forEach(el => el.classList.remove('coach-target'));
   ringOff();
