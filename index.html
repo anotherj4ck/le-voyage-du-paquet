@@ -1910,7 +1910,7 @@ const STEPS = [
     title: 'Internet, de routeur en routeur', chip: [3, 'Couche 3 · Réseau'],
     body: `<p>Chaque routeur fait le même travail : il lit l'<strong>IP de destination</strong>, cherche la meilleure route dans sa <strong>table de routage</strong>, puis passe le paquet au routeur suivant.</p>
 <p>À chaque saut, il jette l'ancien en-tête Ethernet et en met un neuf, avec de nouvelles adresses MAC. Il baisse aussi le <strong>TTL</strong> de 1 : à zéro, le paquet serait détruit.</p>
-<div class="keyline">Les adresses IP restent les mêmes de bout en bout. Les adresses MAC source et destination de la trame, elles, sont réécrites par chaque routeur.</div>`,
+<div class="keyline">Les adresses IP restent les mêmes tout au long d'Internet ; seul le NAT de la box traduira l'adresse de destination. Les adresses MAC source et destination de la trame, elles, sont réécrites par chaque routeur.</div>`,
     setup() { placeAt('srv'); layers(ALL); setPK(RESP, ALL); where(WHERE.srv); setTable(routeTable('r1')); },
     cam() { followTP(19, 0.12, 0.98); },
     async play(ctx) {
