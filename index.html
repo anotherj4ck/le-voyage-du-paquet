@@ -2140,12 +2140,20 @@ function rangeText(c) {
   const [a, b] = netRange(c), pa = a.split('.'), pb = b.split('.');
   return pa.slice(0, 3).join('.') === pb.slice(0, 3).join('.') ? `${a} à .${pb[3]}` : `${a} à ${b}`;
 }
+// Adresses utilisables : toutes sauf la première (adresse du réseau) et la dernière (diffusion)
+function usableText(c) {
+  const [a, b] = netRange(c).map(ipInt);
+  if (b - a < 2) return 'aucune';
+  const f = intIp(a + 1), l = intIp(b - 1), pf = f.split('.'), pl = l.split('.');
+  return pf.slice(0, 3).join('.') === pl.slice(0, 3).join('.') ? `.${pf[3]} à .${pl[3]}` : `${f} à ${l}`;
+}
+const netText = c => `${rangeText(c)} (utilisables : ${usableText(c)})`;
 function configProblem(c) {
   if (c.ip === IP.boxL) return `Conflit d'adresses : ${IP.boxL} est déjà utilisée par la box.`;
   if (c.gw === c.ip) return `La passerelle indiquée (${c.gw}) est l'adresse du PC lui-même.`;
   const m = ipInt(c.mask);
   if (((ipInt(c.ip) & m) >>> 0) !== ((ipInt(c.gw) & m) >>> 0)) {
-    return `La passerelle ${c.gw} n'est pas dans le réseau du PC (${rangeText(c)}) : il ne sait pas comment la joindre, le paquet ne part pas.`;
+    return `La passerelle ${c.gw} n'est pas dans le réseau du PC (${rangeText(c)}, utilisables : ${usableText(c)}) : il ne sait pas comment la joindre, le paquet ne part pas.`;
   }
   return null;
 }
@@ -2200,7 +2208,7 @@ const TICKETS = [
     id: 'mask', from: 'Paul',
     text: "Un ami a configuré le PC fixe à la main. Depuis, il n'a jamais eu Internet. Le portable, lui, marche.",
     apply: (st, v) => { st.pc.mask = v || '255.255.255.248'; },
-    explain: st0 => { const [a, b] = netRange(st0.pc); return `Avec le masque ${st0.pc.mask}, le PC croyait que son réseau allait de ${a} à ${b}. La box (192.168.1.1) était donc « hors réseau » pour lui.`; },
+    explain: st0 => { const [a, b] = netRange(st0.pc); return `Avec le masque ${st0.pc.mask}, le PC croyait que son réseau allait de ${a} à ${b} (utilisables : ${usableText(st0.pc)}). La box (192.168.1.1) était donc « hors réseau » pour lui.`; },
     reflex: 'Le masque dit qui sont les voisins directs. Avec 255.255.255.0, tout 192.168.1.x est dans le même réseau.',
   },
   {
@@ -2265,7 +2273,7 @@ function cfgTable(c, ref, editable) {
     ? `<select id="g-f-${f}" aria-label="${FIELD_LABEL[f]} du PC fixe">${optionsFor(f).map(v => `<option${v === c[f] ? ' selected' : ''}>${v}</option>`).join('')}</select>`
     : c[f]);
   const rows = FIELDS.map(f => [FIELD_LABEL[f], cell(f), ref && ref[f]]);
-  rows.push(['Réseau', `<span id="g-net">${rangeText(c)}</span>`, ref && rangeText(ref)]);
+  rows.push(['Réseau', `<span id="g-net">${netText(c)}</span>`, ref && netText(ref)]);
   return `<div class="table-wrap"><table class="cfg"><thead><tr><th scope="col"></th><th scope="col">${ref ? 'PC fixe' : 'Valeur'}</th>${ref ? '<th scope="col">Portable</th>' : ''}</tr></thead><tbody>` +
     rows.map((r, i) => `<tr${i === 3 ? ' class="net"' : ''}><td>${r[0]}</td><td>${r[1]}</td>${ref ? `<td>${r[2]}</td>` : ''}</tr>`).join('') + '</tbody></table></div>';
 }
@@ -2299,7 +2307,7 @@ function renderEq() {
       actsHtml([st.switchOn ? ['reboot-sw', 'Redémarrer le switch'] : ['power-sw', 'Rallumer le switch']]) +
       `<p class="note">Ce switch (non administrable) n'a pas d'adresse IP : il relie les appareils de la maison à la box.</p>`;
   } else if (id === 'box') {
-    h = `<h3>Box internet</h3><ul class="state">${li('Alimentation', yes(true, 'allumée'))}${li('Voyant fibre', yes(st.fiberOk, 'vert', 'rouge, aucun signal'))}${li('Adresse côté maison', '192.168.1.1')}${li('Réseau de la maison', '192.168.1.0 à .255')}</ul>` +
+    h = `<h3>Box internet</h3><ul class="state">${li('Alimentation', yes(true, 'allumée'))}${li('Voyant fibre', yes(st.fiberOk, 'vert', 'rouge, aucun signal'))}${li('Adresse côté maison', '192.168.1.1')}${li('Réseau de la maison', netText(OK_CFG))}</ul>` +
       actsHtml([['reboot-box', 'Redémarrer la box'], ['call-fai', 'Appeler le FAI']]) +
       `<p class="note">Son adresse 192.168.1.1 est la passerelle de tous les appareils de la maison.</p>`;
   } else if (id === 'fiber') {
@@ -2609,7 +2617,7 @@ function initGame() {
     const c = {};
     for (const f of FIELDS) c[f] = ($('#g-f-' + f) || {}).value || G.st.pc[f];
     const net = $('#g-net');
-    if (net) net.textContent = rangeText(c);
+    if (net) net.textContent = netText(c);
   });
   renderHud();
 }
