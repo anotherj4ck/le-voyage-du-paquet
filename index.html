@@ -24,6 +24,17 @@
 /* Layout : console de supervision. La scène 3D occupe l'écran, le récit en bas à gauche,
    l'inspecteur de paquet (façon Wireshark) à droite, les fiches mémo sous la scène.
    Couleurs des couches = les 4 paires d'un câble RJ45 câblé en T568B : orange, bleu, vert, marron. */
+
+/* Polices hébergées dans fonts/ : sous-ensemble « latin » (tout le français), licence SIL OFL 1.1, voir fonts/OFL-*.txt.
+   Big Shoulders Display est une police variable : un seul fichier pour les graisses 700 à 800. */
+@font-face{font-family:"Big Shoulders Display";font-style:normal;font-weight:700 800;font-display:swap;src:url("fonts/big-shoulders-display-700-800.woff2") format("woff2")}
+@font-face{font-family:"Atkinson Hyperlegible";font-style:normal;font-weight:400;font-display:swap;src:url("fonts/atkinson-hyperlegible-400.woff2") format("woff2")}
+@font-face{font-family:"Atkinson Hyperlegible";font-style:italic;font-weight:400;font-display:swap;src:url("fonts/atkinson-hyperlegible-400-italic.woff2") format("woff2")}
+@font-face{font-family:"Atkinson Hyperlegible";font-style:normal;font-weight:700;font-display:swap;src:url("fonts/atkinson-hyperlegible-700.woff2") format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:400;font-display:swap;src:url("fonts/ibm-plex-mono-400.woff2") format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:500;font-display:swap;src:url("fonts/ibm-plex-mono-500.woff2") format("woff2")}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:600;font-display:swap;src:url("fonts/ibm-plex-mono-600.woff2") format("woff2")}
+
 :root{
   --bg:#e8ecf0;
   --surface:#f9fbfc;
