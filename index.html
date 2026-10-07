@@ -1,4 +1,13 @@
 <!doctype html>
+<!--
+  Dépendance 3D : three.js r128 (paquet npm three@0.128.0, fichier build/three.min.js),
+  copiée dans vendor/three.min.js pour que le site marche hors ligne, sans CDN.
+  Version volontairement figée : three.js a abandonné ses fichiers « classiques »,
+  chargés par une simple balise <script> (dépréciés en r150, supprimés en r161).
+  Il n'est plus livré au navigateur que sous forme de modules ES, que les navigateurs
+  bloquent quand on ouvre index.html en double-cliquant (file://).
+  Monter de version imposerait de réécrire le chargement de la 3D.
+-->
 <html lang="fr">
 <head>
 <meta charset="utf-8">
@@ -520,7 +529,7 @@ strong{font-weight:700}
 </footer>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="vendor/three.min.js"></script>
 <script>
 (() => {
 'use strict';
