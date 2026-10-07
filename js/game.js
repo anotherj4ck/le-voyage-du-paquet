@@ -401,7 +401,7 @@ function startTicket(i, random = false) {
   G.st = freshState(OK_CFG);
   G.ticket.apply(G.st, random && VARIANTS[G.ticket.id] ? pick(VARIANTS[G.ticket.id]) : undefined);
   G.st0 = clone(G.st);
-  G.text = random && VARIANTS[G.ticket.id] ? RANDOM_TEXT : G.ticket.text;
+  G.text = random && VARIANTS[G.ticket.id] ? (RANDOM_TEXT[G.ticket.id] || RANDOM_TEXT.default) : G.ticket.text;
   G.stars = 3; G.solved = false; G.busy = false; G.editing = false; G.sel = null;
   G.coach = G.ticket.tutorial && !random ? 0 : -1;
   applyHomeVisuals(G.st);

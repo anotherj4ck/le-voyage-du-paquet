@@ -229,8 +229,16 @@ const TICKETS = [
     reflex: "Chaque appareil doit avoir une adresse unique. En cas de conflit, on repasse en DHCP ou on choisit une adresse libre.",
   },
 ];
-const VARIANTS = { ip: ['192.168.2.10', '192.168.0.10'], mask: ['255.255.255.248', '255.255.255.252'], gw: ['192.168.1.254', '192.168.1.100'] };
-const RANDOM_TEXT = "Le PC fixe n'a plus Internet depuis qu'on a touché à ses réglages réseau. Le portable, lui, marche.";
+// Panne au hasard : valeurs possibles de la panne, et message générique de la personne qui écrit
+// (dns « box » : le relais DNS de la box est planté, tous les appareils sont touchés)
+const VARIANTS = {
+  ip: ['192.168.2.10', '192.168.0.10'], mask: ['255.255.255.248', '255.255.255.252'], gw: ['192.168.1.254', '192.168.1.100'],
+  dns: ['203.0.113.53', '192.168.1.254', 'box'],
+};
+const RANDOM_TEXT = {
+  default: "Le PC fixe n'a plus Internet depuis qu'on a touché à ses réglages réseau. Le portable, lui, marche.",
+  dns: "Les sites ne s'ouvrent plus : le navigateur ne trouve pas leur adresse. Pourtant, les applications déjà connectées marchent encore.",
+};
 const COACH = [
   { text: '<b>Étape 1 sur 4.</b> On commence toujours par tester. Clique sur « Tester depuis le PC ».', target: '#g-test-pc', next: 'test:pc:ko' },
   { text: "<b>Étape 2 sur 4.</b> Le paquet n'a même pas quitté le PC. Inspecte-le : clique sur « PC fixe », ici ou sur son étiquette dans la scène.", target: '.chip[data-eq="pc"]', tag: 'pc', next: 'inspect:pc' },

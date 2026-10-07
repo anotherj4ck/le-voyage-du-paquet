@@ -10,6 +10,11 @@ const data = require('../js/data.js');
 const REF = data.HOME; // le réseau tel que la simulation le voit
 const fresh = () => net.freshState(data.OK_CFG);
 const broken = (ticket, variant) => { const st = fresh(); ticket.apply(st, variant); return st; };
+// Le switch, la fibre et le DNS de la box servent à tous : leur panne touche aussi le portable, les autres non
+function assertLaptop(st) {
+  const shared = !st.switchOn || !st.fiberOk || !st.boxDns;
+  assert.equal(net.simulate(st, 'laptop', REF).ok === true, !shared);
+}
 
 describe('Configurations de référence', () => {
   it('le PC, le portable et la console sont bien configurés', () => {
@@ -37,18 +42,17 @@ describe('Tickets du jeu', () => {
         assert.notEqual(net.simulate(st, 'pc', REF).ok, true);
       });
       it('le test depuis le portable distingue panne du PC et panne commune', () => {
-        const st = broken(t);
-        const shared = !st.switchOn || !st.fiberOk || !st.boxDns; // switch, fibre et DNS de la box servent à tous
-        assert.equal(net.simulate(st, 'laptop', REF).ok === true, !shared);
+        assertLaptop(broken(t));
       });
       it('a un message, une explication et un réflexe', () => {
         for (const s of [t.from, t.text, t.explain(broken(t)), t.reflex]) assert.ok(typeof s === 'string' && s.trim().length > 0);
       });
       for (const v of data.VARIANTS[t.id] || []) {
-        it(`panne au hasard, variante ${v} : la panne est détectée`, () => {
+        it(`panne au hasard, variante ${v} : la panne est détectée, et le portable la situe`, () => {
           const st = broken(t, v);
           assert.equal(net.faultsOf(st, data.OK_CFG), 1);
           assert.notEqual(net.simulate(st, 'pc', REF).ok, true);
+          assertLaptop(st);
         });
       }
     });
