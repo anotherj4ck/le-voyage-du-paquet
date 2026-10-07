@@ -212,6 +212,15 @@ const TICKETS = [
     explain: () => `Le serveur DHCP de la box avait été désactivé. Au démarrage, le PC a demandé une adresse et personne n'a répondu : il s'est donné ${apipaFor(MAC.pc)}, une adresse de secours (APIPA) qui ne permet pas de sortir. Le portable gardait l'adresse obtenue la veille : son bail courait encore.`,
     reflex: "Une adresse en 169.254, c'est que le DHCP n'a pas répondu. On répare le serveur DHCP, puis on redemande une adresse (ipconfig /renew).",
   },
+  {
+    id: 'dns', from: 'Inès',
+    text: "Plus aucun site ne s'ouvre sur le PC fixe : le navigateur dit qu'il ne trouve pas l'adresse du site. Pourtant Discord marche, je parle avec mes amis en ce moment ! Mon frère a changé un réglage pour « accélérer Internet ».",
+    apply: (st, v) => { if (v === 'box') st.boxDns = false; else Object.assign(st.pc, { mode: 'manuel', dns: v || '203.0.113.53' }); },
+    explain: st0 => (st0.boxDns === false
+      ? "Le relais DNS de la box était planté : plus aucun appareil ne pouvait traduire un nom (exemple.fr) en adresse IP. Les applications déjà connectées marchaient encore, car elles n'avaient pas besoin de redemander d'adresse. Redémarrer la box l'a relancé."
+      : `Le PC interrogeait le serveur DNS ${st0.pc.dns}, qui ne répond pas : il ne pouvait plus traduire les noms (exemple.fr) en adresses IP. Discord marchait encore, car sa connexion était déjà ouverte : il n'avait pas besoin de redemander d'adresse.`),
+    reflex: "Si l'adresse IP répond mais pas le nom (ping 203.0.113.10 marche, ping exemple.fr échoue), c'est le DNS.",
+  },
 ];
 const VARIANTS = { ip: ['192.168.2.10', '192.168.0.10'], mask: ['255.255.255.248', '255.255.255.252'], gw: ['192.168.1.254', '192.168.1.100'] };
 const RANDOM_TEXT = "Le PC fixe n'a plus Internet depuis qu'on a touché à ses réglages réseau. Le portable, lui, marche.";
