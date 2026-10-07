@@ -18,4 +18,12 @@ jobs:
         with:
           node-version: lts/*
       # aucune dépendance à installer : les tests n'utilisent que le lanceur intégré de Node
-      - run: npm test
+      - name: Lancer les tests
+        shell: bash # active pipefail : un test en échec fait échouer l'étape, malgré le tee
+        run: npm test | tee resultats.txt
+      # Garde-fou : si le motif ne trouvait aucun fichier, node --test réussirait avec « 0 test »
+      - name: Vérifier que des tests ont tourné
+        run: |
+          n=$(grep -oE "(ℹ|#) pass [0-9]+" resultats.txt | grep -oE "[0-9]+$" || true)
+          if [ "${n:-0}" -eq 0 ]; then echo "::error title=Tests::aucun test n'a tourné"; exit 1; fi
+          echo "::notice title=Tests::$n tests réussis"
