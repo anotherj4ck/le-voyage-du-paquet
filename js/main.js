@@ -1,5 +1,6 @@
 /* Le Voyage du Paquet : initialisation. Bascule entre la visite et le jeu, thème clair / sombre,
-   boucle d'animation, raccourcis clavier, démarrage. Chargé en dernier : net, data, scene, tour et game sont prêts.
+   boucle d'animation, raccourcis clavier, adresse de la page, démarrage.
+   Chargé en dernier : net, data, terminal, route, scene, tour et game sont prêts.
    Copyright (c) 2026 anotherj4ck. Code sous licence MIT : voir LICENSE.
    Les textes pédagogiques qu'il contient relèvent de LICENSE-CONTENU (tous droits réservés). */
 (() => {
@@ -9,7 +10,9 @@ const {
   resize, render, rig, snapRig, closeFiche, buildWorld,
 } = VDP.scene;
 const { state: tour, goStep, initTour, setPaused, stopTour } = VDP.tour;
-const { initGame, enterGame, exitGame, tagClick } = VDP.game;
+const { initGame, enterGame, exitGame, tagClick, openTicket } = VDP.game;
+const { parseHash } = VDP.route;
+const { TICKETS } = VDP.data;
 
 /* =====================================================================
    Modes, boucle principale, démarrage
@@ -68,6 +71,16 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+// Adresse de la page : #jeu ouvre le jeu, #ticket-3 ouvre directement le ticket 3.
+// Aussi quand on modifie l'adresse d'une page déjà ouverte : un formateur passe d'un cas à l'autre.
+function route() {
+  const r = parseHash(location.hash, TICKETS.length);
+  if (!r) return false;
+  setMode('game');
+  if (r.ticket !== null) openTicket(r.ticket);
+  return true;
+}
+
 function start() {
   resize();
   if (HAS3D) {
@@ -107,8 +120,8 @@ function start() {
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); goStep(tour.i - 1); }
   });
   document.addEventListener('keyup', e => { if (e.key === ' ' && eatSpaceUp) { eatSpaceUp = false; e.preventDefault(); } });
-  const first = location.hash === '#jeu' ? 'game' : 'tour';
-  setMode(first);
+  if (!route()) setMode('tour');
+  window.addEventListener('hashchange', route);
   if (HAS3D) snapRig();
   requestAnimationFrame(t => { lastT = t; requestAnimationFrame(frame); });
 }

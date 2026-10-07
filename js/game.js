@@ -418,6 +418,9 @@ function startTicket(i, random = false) {
   if (VDP.mode === 'game') view('game');
   $('#game').scrollTop = 0;
 }
+// Ouvre directement un ticket, sans la carte d'accueil (adresse #ticket-3)
+function openTicket(i) { startTicket(i); }
+
 function introCard() {
   const resume = !G.finished && G.results.some(v => v != null);
   showCard(`<h2>Trouve la panne</h2>
@@ -481,5 +484,5 @@ function initGame() {
   renderHud();
 }
 
-return { initGame, enterGame, exitGame, tagClick };
+return { initGame, enterGame, exitGame, tagClick, openTicket };
 }());
