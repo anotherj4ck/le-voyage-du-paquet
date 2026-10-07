@@ -1853,6 +1853,7 @@ const STEPS = [
   {
     title: "L'aller : ta requête sort", chip: [4, 'Couches 3 et 4'],
     body: `<p>Avant toute réponse, ton PC a envoyé une requête au serveur : « donne-moi la page d'accueil ». Elle part de <code>192.168.1.10</code>, port <code>52344</code>, vers <code>203.0.113.10</code>, port <code>443</code> (HTTPS).</p>
+<p>Juste avant, le DNS a traduit <code>exemple.fr</code> en <code>203.0.113.10</code>, puis TCP (la poignée de main en 3 temps) et TLS ont ouvert une connexion chiffrée avec le serveur.</p>
 <p>En sortant, la box remplace ton adresse privée par son adresse publique <code>198.51.100.42</code> et prend un port à elle, <code>40001</code>. Elle note la correspondance dans sa <strong>table NAT</strong>.</p>
 <div class="keyline">Retiens la ligne 40001 : c'est elle qui permettra à la réponse de retrouver ton PC.</div>`,
     setup() { placeAt('pc'); layers(ALL); if (TP) TP.unlock(false); setPK(REQ, ALL); where(WHERE.pc); setTable(natTable({ withPc: false })); },
