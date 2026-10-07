@@ -1,6 +1,9 @@
 /* Le Voyage du Paquet : contenus pédagogiques. Adresses de la scène, fiches des équipements,
    textes des 10 étapes de la visite, tickets du jeu « Trouve la panne ».
+   Chargé par le navigateur (VDP.data) et par Node pour les tests (module.exports, en fin de fichier).
    Copyright (c) 2026 anotherj4ck. Textes et scénarios : tous droits réservés, voir LICENSE-CONTENU. */
+var VDP = (typeof window !== 'undefined' && window.VDP) || { net: require('./net.js') };
+
 VDP.data = (function () {
 'use strict';
 const { netRange, usableText } = VDP.net;
@@ -195,3 +198,5 @@ const COACH = [
 
 return { IP, MAC, INFO, STEPS, OK_CFG, LAPTOP_CFG, CONSOLE_CFG, FIELD_LABEL, CHOICES, TICKETS, VARIANTS, RANDOM_TEXT, COACH };
 }());
+
+if (typeof module !== 'undefined') module.exports = VDP.data;
