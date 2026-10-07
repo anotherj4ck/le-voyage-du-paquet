@@ -333,6 +333,34 @@ async function gameTest(from) {
   coachEvent(`test:${from}:${r.ok ? 'ok' : 'ko'}`);
 }
 
+/* ---------- invite de commandes du PC : gratuite, elle ne coûte jamais d'étoile ---------- */
+const term = { history: [], pos: 0 };
+function termPrint(text) {
+  const out = $('#g-term-out'), pre = document.createElement('pre');
+  pre.textContent = text; // jamais innerHTML : ce que tape l'utilisateur ne doit pas devenir du HTML
+  out.appendChild(pre);
+  out.scrollTop = out.scrollHeight;
+}
+function termReset() {
+  $('#g-term-out').replaceChildren();
+  termPrint('Invite de commandes simulée du PC fixe. Tape help pour la liste des commandes.');
+}
+function termRun(line) {
+  if (line.trim() && term.history[term.history.length - 1] !== line) term.history.push(line);
+  term.pos = term.history.length;
+  const r = VDP.term.run(line, { st: G.st, home: HOME });
+  if (r.clear) { $('#g-term-out').replaceChildren(); return; }
+  termPrint([VDP.term.PROMPT + line, ...r.lines].join('\n'));
+  if (r.renew && !G.solved && !G.st.pc.lease) { G.st.pc.lease = true; renderEq(); } // ipconfig /renew a obtenu une adresse
+}
+// Flèches haut et bas : parcourir les commandes déjà tapées
+function termHistory(e) {
+  if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+  e.preventDefault();
+  term.pos = e.key === 'ArrowUp' ? Math.max(0, term.pos - 1) : Math.min(term.history.length, term.pos + 1);
+  e.target.value = term.history[term.pos] || '';
+}
+
 /* ---------- déroulé ---------- */
 function solve() {
   G.solved = true;
@@ -385,6 +413,7 @@ function startTicket(i, random = false) {
   result('', '');
   setTools(true);
   renderHud(); renderTicket(); renderEq(); renderCoach();
+  termReset();
   hideCard();
   if (VDP.mode === 'game') view('game');
   $('#game').scrollTop = 0;
@@ -396,7 +425,7 @@ function introCard() {
 <ul><li><strong>Teste</strong> la connexion : un paquet part vers Internet et s'arrête là où ça bloque.</li>
 <li><strong>Inspecte</strong> les équipements : clique sur leur nom dans le panneau ou sur leur étiquette dans la scène.</li>
 <li><strong>Répare</strong>, puis refais un test pour vérifier.</li></ul>
-<p>Tester et inspecter ne coûte rien. Chaque réparation inutile fait perdre une étoile. Le premier ticket est guidé.</p>
+<p>Tester, inspecter et taper des commandes dans l'invite du PC ne coûte rien. Chaque réparation inutile fait perdre une étoile. Le premier ticket est guidé.</p>
 <div class="row"><button class="btn primary" id="g-start" type="button">${resume ? `Reprendre (ticket ${G.idx + 1} / ${TICKETS.length})` : 'Commencer'}</button></div>`, '#g-start');
   $('#g-start').addEventListener('click', () => hideCard());
 }
@@ -438,6 +467,9 @@ function initGame() {
   $('#g-test-laptop').addEventListener('click', () => gameTest('laptop'));
   $$('.inspect .chip').forEach(c => c.addEventListener('click', () => gameInspect(c.dataset.eq)));
   $('#g-eq').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && !b.disabled) gameAction(b.dataset.act); });
+  $('#g-term-form').addEventListener('submit', e => { e.preventDefault(); const i = $('#g-term-in'); termRun(i.value); i.value = ''; });
+  $('#g-term-in').addEventListener('keydown', termHistory);
+  $('#g-term').addEventListener('toggle', e => { if (e.target.open) $('#g-term-in').focus({ preventScroll: true }); });
   // pendant la modification, la ligne « Réseau » suit les valeurs choisies ; en DHCP, c'est la box qui les donne
   $('#g-eq').addEventListener('change', e => {
     if (!e.target.matches('select')) return;

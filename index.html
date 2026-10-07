@@ -25,6 +25,7 @@
 <script defer src="vendor/three.min.js"></script>
 <script defer src="js/net.js"></script>
 <script defer src="js/data.js"></script>
+<script defer src="js/terminal.js"></script>
 <script defer src="js/scene.js"></script>
 <script defer src="js/tour.js"></script>
 <script defer src="js/game.js"></script>
@@ -137,6 +138,15 @@
       <button class="btn" id="g-test-laptop" type="button">Tester depuis le portable</button>
     </div>
     <div class="result" id="g-result" aria-live="polite"></div>
+    <details class="term" id="g-term">
+      <summary>Invite de commandes du PC</summary>
+      <div class="term-out" id="g-term-out" role="log" aria-live="polite" aria-label="Sortie de l'invite de commandes"></div>
+      <form class="term-line" id="g-term-form" autocomplete="off">
+        <span class="term-prompt" aria-hidden="true">C:\Users\Utilisateur&gt;</span>
+        <input id="g-term-in" type="text" spellcheck="false" autocapitalize="off" aria-label="Commande à exécuter sur le PC fixe" aria-describedby="g-term-help">
+      </form>
+      <p class="term-help" id="g-term-help">Tape <code>help</code> puis Entrée. Flèches ↑ ↓ : commandes précédentes. Le terminal ne coûte aucune étoile.</p>
+    </details>
     <div class="inspect" role="group" aria-label="Inspecter un équipement">
       <span class="lbl">Inspecter</span>
       <button class="chip" type="button" data-eq="pc" aria-pressed="false">PC fixe</button>
