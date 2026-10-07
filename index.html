@@ -1941,7 +1941,7 @@ const STEPS = [
     title: "La box traduit l'adresse (NAT)", chip: [4, 'Couches 3 et 4'],
     body: `<p>La box reçoit un paquet pour <code>198.51.100.42</code>, port <code>40001</code>. C'est bien son adresse, mais le paquet n'est pas pour elle.</p>
 <p>Elle cherche le port 40001 dans sa <strong>table NAT</strong>, retrouve la ligne créée à l'aller et réécrit la destination : <code>192.168.1.10</code>, port <code>52344</code>. Comme tout routeur, elle baisse aussi le TTL.</p>
-<div class="keyline">Un paquet qui arrive sur un port absent de la table est jeté : le NAT sert aussi de pare-feu.</div>`,
+<div class="keyline">Un paquet qui arrive sans ligne correspondante dans la table NAT est jeté : par effet de bord, cela protège le LAN. Mais le NAT n'est pas un pare-feu : la box en a un vrai en plus, un pare-feu à état.</div>`,
     setup() { placeAt('box'); layers(ALL); setPK(R_AT_BOX, ALL); where(WHERE.box); setTable(natTable()); },
     cam() { view('box'); },
     async play(ctx) {
