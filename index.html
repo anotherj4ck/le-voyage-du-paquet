@@ -465,7 +465,7 @@ strong{font-weight:700}
         <tbody>
           <tr><td>Switch</td><td><span class="lv lv-2">2 · Liaison</span></td><td>MAC de destination, et MAC source pour apprendre</td><td>Rien</td><td>Table MAC (CAM) : adresse MAC → port</td></tr>
           <tr><td>Routeur</td><td><span class="lv lv-3">3 · Réseau</span></td><td>IP de destination</td><td>En-tête Ethernet (nouvelles MAC), TTL − 1</td><td>Table de routage : réseau → sortie</td></tr>
-          <tr><td>Box</td><td><span class="lv lv-4">3 et 4</span></td><td>IP et port de destination</td><td>IP et port (NAT), MAC, TTL − 1</td><td>Table NAT, table ARP</td></tr>
+          <tr><td>Box</td><td><span class="lv lv-4">3 et 4</span></td><td>IP et port de destination</td><td>IP et port (NAT), en-tête Ethernet (nouvelles MAC), TTL − 1</td><td>Table NAT, table ARP</td></tr>
           <tr><td>PC</td><td><span class="lv lv-7">1 à 7</span></td><td>Tout, en remontant les couches</td><td>Rien : il désencapsule</td><td>Ports ouverts : port → programme</td></tr>
         </tbody>
       </table>
@@ -488,7 +488,7 @@ strong{font-weight:700}
   <div>
     <h2>Glossaire express</h2>
     <dl class="glossary">
-      <div><dt>WAN</dt><dd>Wide Area Network, le réseau étendu : Internet et le réseau de ton fournisseur d'accès. Côté WAN, ta box n'a qu'une seule adresse IP publique.</dd></div>
+      <div><dt>WAN</dt><dd>Wide Area Network, le réseau étendu : Internet et le réseau de ton fournisseur d'accès. Côté WAN, ta box n'a qu'une seule adresse IP publique (en IPv4).</dd></div>
       <div><dt>LAN</dt><dd>Local Area Network, le réseau de ta maison. Les appareils y ont des adresses IP privées, comme 192.168.1.10.</dd></div>
       <div><dt>Adresse IP</dt><dd>Adresse logique (couche 3) d'une machine. Elle reste la même pendant tout le trajet, sauf quand un NAT la traduit.</dd></div>
       <div><dt>Adresse MAC</dt><dd>Adresse physique (couche 2) de la carte réseau, 48 bits notés en hexadécimal. Elle ne sert que sur un tronçon : la carte garde la sienne, mais chaque routeur réécrit les adresses MAC source et destination de l'en-tête de trame.</dd></div>
