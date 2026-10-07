@@ -1,5 +1,7 @@
 # Le Voyage du Paquet
 
+[![Tests](https://github.com/anotherj4ck/le-voyage-du-paquet/actions/workflows/tests.yml/badge.svg)](https://github.com/anotherj4ck/le-voyage-du-paquet/actions/workflows/tests.yml)
+
 Une visite guidée en 3D du trajet d'un paquet réseau, du serveur web jusqu'au PC de la maison, suivie d'un jeu de dépannage.
 
 **[▶ Ouvrir la démo](https://anotherj4ck.github.io/le-voyage-du-paquet/)** : rien à installer, tout se passe dans le navigateur.
@@ -111,6 +113,29 @@ Pour rester lisible, la scène simplifie quelques points :
 - **Mode sans 3D** : si WebGL n'est pas disponible, le récit, l'inspecteur de paquet et le jeu restent utilisables.
 - **Accessibilité** : police Atkinson Hyperlegible, conçue pour être lisible par les personnes malvoyantes ; navigation au clavier ; thème sombre automatique ; animations réduites si le système le demande.
 - **Couleurs des couches** : ce sont celles des quatre paires d'un câble Ethernet à paires torsadées. Orange pour Ethernet, bleu pour IP, vert pour TCP, marron pour les données.
+
+## Lancer les tests
+
+Des tests automatiques vérifient la logique réseau du jeu : plages d'adresses, diagnostic d'une configuration IP, simulation de chaque panne. Ils vérifient aussi les tickets : chacun doit créer une vraie panne, que la simulation détecte. Les tests utilisent le lanceur intégré de Node.js, sans aucune dépendance à installer. Ils tournent aussi sur GitHub à chaque push et à chaque pull request : c'est le badge en haut de cette page.
+
+Il faut Node.js 22 ou plus récent (`node --version` pour vérifier). Depuis le dossier du projet :
+
+**Fedora**
+
+```sh
+sudo dnf install nodejs
+npm test
+```
+
+**Windows** (PowerShell)
+
+```powershell
+winget install OpenJS.NodeJS.LTS
+# fermer puis rouvrir le terminal, pour qu'il trouve node et npm
+npm test
+```
+
+`npm test` lance `node --test "tests/**/*.test.js"`. Les tests sont dans le dossier `tests/`.
 
 ## Crédits
 
