@@ -221,6 +221,13 @@ const TICKETS = [
       : `Le PC interrogeait le serveur DNS ${st0.pc.dns}, qui ne répond pas : il ne pouvait plus traduire les noms (exemple.fr) en adresses IP. Discord marchait encore, car sa connexion était déjà ouverte : il n'avait pas besoin de redemander d'adresse.`),
     reflex: "Si l'adresse IP répond mais pas le nom (ping 203.0.113.10 marche, ping exemple.fr échoue), c'est le DNS.",
   },
+  {
+    id: 'conflit', from: 'Hugo',
+    text: "J'ai mis une adresse fixe au PC fixe pour un jeu en ligne. Depuis, Windows parle d'un « conflit d'adresses IP », le PC n'a plus Internet, et la console se coupe de temps en temps. Le portable va bien.",
+    apply: (st, v) => { Object.assign(st.pc, { mode: 'manuel', ip: v || IP.console }); },
+    explain: st0 => `Le PC avait reçu à la main l'adresse ${st0.pc.ip}, déjà utilisée par ${st0.pc.ip === IP.boxL ? 'la box' : HOME.devices[st0.pc.ip]}. Deux appareils ne peuvent pas avoir la même adresse sur un réseau : Windows l'a détecté et a refusé de s'en servir.`,
+    reflex: "Chaque appareil doit avoir une adresse unique. En cas de conflit, on repasse en DHCP ou on choisit une adresse libre.",
+  },
 ];
 const VARIANTS = { ip: ['192.168.2.10', '192.168.0.10'], mask: ['255.255.255.248', '255.255.255.252'], gw: ['192.168.1.254', '192.168.1.100'] };
 const RANDOM_TEXT = "Le PC fixe n'a plus Internet depuis qu'on a touché à ses réglages réseau. Le portable, lui, marche.";
