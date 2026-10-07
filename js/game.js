@@ -4,10 +4,10 @@
    Les textes pédagogiques qu'il contient relèvent de LICENSE-CONTENU (tous droits réservés). */
 VDP.game = (function () {
 'use strict';
-const { FIELDS, netText, freshState, simulate } = VDP.net;
+const { FIELDS, netText, pcConfig, freshState, faultsOf, simulate } = VDP.net;
 const {
-  IP, OK_CFG, LAPTOP_CFG, CONSOLE_CFG, FIELD_LABEL, CHOICES, TICKETS, VARIANTS, RANDOM_TEXT,
-  COACH,
+  OK_CFG, LAPTOP_CFG, CONSOLE_CFG, FIELD_LABEL, MODE_LABEL, CHOICES, HOME, TICKETS, VARIANTS,
+  RANDOM_TEXT, COACH,
 } = VDP.data;
 const {
   $, $$, REDUCED, ease, esc, cssVar, clone, HAS3D, CANCEL, makeCtx, tween, wait, kill,
@@ -19,7 +19,6 @@ const {
 /* =====================================================================
    Jeu : trouve la panne — données et simulation
    ===================================================================== */
-const REF = { boxIp: IP.boxL, laptop: LAPTOP_CFG }; // réseau de référence de la simulation
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const okColor = () => cssVar('--ok') || '#1b8a4a';
 const badColor = () => cssVar('--bad') || '#cf3a40';
@@ -37,7 +36,7 @@ const G = {
 let gameCtx = makeCtx(1);
 const TEST_PKS = new Set();
 const screenEl = $('#g-screen'), cardEl = $('#g-card');
-const STOP_AT = { pc: 'au PC fixe', laptop: 'au portable', sw: 'au switch', box: 'à la box' };
+const STOP_AT = { pc: 'au PC fixe', laptop: 'au portable', sw: 'au switch', box: 'à la box', r2: 'sur Internet' };
 const INSPECTABLE = ['pc', 'laptop', 'console', 'sw', 'box', 'fiber', 'fai'];
 
 function showCard(html, focusSel) {
@@ -64,14 +63,32 @@ function renderHud() {
 function renderTicket() {
   $('#g-ticket').innerHTML = `<div class="who"><span>Ticket n° ${1041 + G.idx}</span><span>de ${esc(G.ticket.from)}</span></div><p>« ${esc(G.text)} »</p>`;
 }
-function cfgTable(c, ref, editable) {
-  const cell = f => (editable
-    ? `<select id="g-f-${f}" aria-label="${FIELD_LABEL[f]} du PC fixe">${optionsFor(f).map(v => `<option${v === c[f] ? ' selected' : ''}>${v}</option>`).join('')}</select>`
-    : c[f]);
-  const rows = FIELDS.map(f => [FIELD_LABEL[f], cell(f), ref && ref[f]]);
+// Valeurs affichées d'une configuration réellement utilisée (voir pcConfig)
+const shown = (c, mode) => ({
+  mode: MODE_LABEL[mode] || MODE_LABEL.manuel, ip: c.apipa ? `${c.ip} (APIPA)` : c.ip,
+  mask: c.mask, gw: c.gw || 'aucune', dns: c.dns || 'aucun',
+});
+function selectFor(f, disabled) {
+  const opts = f === 'mode' ? Object.keys(MODE_LABEL) : optionsFor(f), cur = G.st.pc[f];
+  return `<select id="g-f-${f}" aria-label="${FIELD_LABEL[f]} du PC fixe"${disabled ? ' disabled' : ''}>` +
+    opts.map(v => `<option value="${v}"${v === cur ? ' selected' : ''}>${f === 'mode' ? MODE_LABEL[v] : v}</option>`).join('') + '</select>';
+}
+// Tableau de configuration (comme un ipconfig) : un appareil, et éventuellement le portable en référence
+function cfgTable(c, mode, ref, editable) {
+  const a = shown(c, mode), b = ref && shown(ref, ref.mode);
+  const cell = f => (editable ? selectFor(f, f !== 'mode' && G.st.pc.mode === 'dhcp') : a[f]);
+  const rows = ['mode', ...FIELDS].map(f => [FIELD_LABEL[f], cell(f), b && b[f]]);
   rows.push(['Réseau', `<span id="g-net">${netText(c)}</span>`, ref && netText(ref)]);
   return `<div class="table-wrap"><table class="cfg"><thead><tr><th scope="col"></th><th scope="col">${ref ? 'PC fixe' : 'Valeur'}</th>${ref ? '<th scope="col">Portable</th>' : ''}</tr></thead><tbody>` +
-    rows.map((r, i) => `<tr${i === 3 ? ' class="net"' : ''}><td>${r[0]}</td><td>${r[1]}</td>${ref ? `<td>${r[2]}</td>` : ''}</tr>`).join('') + '</tbody></table></div>';
+    rows.map((r, i) => `<tr${i === rows.length - 1 ? ' class="net"' : ''}><td>${r[0]}</td><td>${r[1]}</td>${ref ? `<td>${r[2]}</td>` : ''}</tr>`).join('') + '</tbody></table></div>';
+}
+// Configuration choisie dans l'éditeur. Passer en DHCP, c'est redemander une adresse : on l'obtient si le serveur répond.
+function editedPc() {
+  const st = G.st, val = f => ($('#g-f-' + f) || {}).value || st.pc[f];
+  const next = { ...st.pc, mode: val('mode') };
+  if (next.mode === 'manuel') for (const f of FIELDS) next[f] = val(f);
+  else if (st.pc.mode !== 'dhcp') next.lease = st.boxDhcp;
+  return next;
 }
 function optionsFor(f) {
   const cur = G.st.pc[f], ok = OK_CFG[f], set = [ok];
@@ -88,24 +105,24 @@ function renderEq() {
   if (!id) { el.innerHTML = ''; return; }
   let h = '';
   if (id === 'pc') {
-    h = `<h3>PC fixe</h3><ul class="state">${li('Câble réseau', yes(st.pcCable, 'branché', 'débranché'))}${li('Lien réseau', yes(st.pcCable && st.switchOn, 'actif', st.pcCable ? 'aucun signal en face' : 'aucun'))}</ul>` +
-      actsHtml([['cable', 'Rebrancher le câble'], ['reboot-pc', 'Redémarrer le PC'], ['edit', 'Modifier la configuration IP']]) +
+    h = `<h3>PC fixe</h3><ul class="state">${li('Câble réseau', yes(st.pcCable, 'branché', 'débranché'))}${li('Lien réseau', yes(st.pcCable && st.switchOn, 'actif', st.pcCable ? 'aucun signal en face' : 'aucun'))}${li('Adressage', st.pc.mode === 'dhcp' ? 'automatique (DHCP)' : 'manuel (adresse fixe)')}</ul>` +
+      actsHtml([['cable', 'Rebrancher le câble'], ['renew', "Renouveler l'adresse IP"], ['reboot-pc', 'Redémarrer le PC'], ['edit', 'Modifier la configuration IP']]) +
       `<p class="note">Sa configuration réseau (comme un <code>ipconfig</code>), à côté de celle du portable qui sert de référence :</p>` +
-      cfgTable(st.pc, LAPTOP_CFG, G.editing) +
-      (G.editing ? `<p class="note">Choisis les valeurs dans la colonne du PC, puis applique.</p><div class="acts"><button class="btn primary" type="button" data-act="apply">Appliquer</button><button class="btn" type="button" data-act="cancel">Annuler</button></div>` : '');
+      cfgTable(pcConfig(st, HOME), st.pc.mode, LAPTOP_CFG, G.editing) +
+      (G.editing ? `<p class="note">Choisis les valeurs dans la colonne du PC, puis applique. En DHCP, c'est la box qui les donne.</p><div class="acts"><button class="btn primary" type="button" data-act="apply">Appliquer</button><button class="btn" type="button" data-act="cancel">Annuler</button></div>` : '');
   } else if (id === 'laptop' || id === 'console') {
-    const lap = id === 'laptop';
+    const lap = id === 'laptop', cfg = lap ? LAPTOP_CFG : CONSOLE_CFG;
     h = `<h3>${lap ? 'Portable' : 'Console'}</h3><ul class="state">${li('Câble réseau', yes(true, 'branché'))}${li('Lien réseau', yes(st.switchOn, 'actif', 'aucun signal en face'))}</ul>` +
       actsHtml([['reboot-' + id, `Redémarrer ${lap ? 'le portable' : 'la console'}`]]) +
-      `<p class="note">Sa configuration réseau. Elle sert de référence pour comparer.</p>${cfgTable(lap ? LAPTOP_CFG : CONSOLE_CFG)}`;
+      `<p class="note">Sa configuration réseau. Elle sert de référence pour comparer.</p>${cfgTable(cfg, cfg.mode)}`;
   } else if (id === 'sw') {
     h = `<h3>Switch</h3><ul class="state">${li('Alimentation', yes(st.switchOn, 'allumé', 'éteint'))}${li('Voyants des ports', yes(st.switchOn, 'ils clignotent', 'tous éteints'))}${li('Port 2 (PC fixe)', yes(st.switchOn && st.pcCable, 'lien actif', 'pas de lien'))}</ul>` +
       actsHtml([st.switchOn ? ['reboot-sw', 'Redémarrer le switch'] : ['power-sw', 'Rallumer le switch']]) +
       `<p class="note">Ce switch (non administrable) n'a pas d'adresse IP : il relie les appareils de la maison à la box.</p>`;
   } else if (id === 'box') {
-    h = `<h3>Box internet</h3><ul class="state">${li('Alimentation', yes(true, 'allumée'))}${li('Voyant fibre', yes(st.fiberOk, 'vert', 'rouge, aucun signal'))}${li('Adresse côté maison', '192.168.1.1')}${li('Réseau de la maison', netText(OK_CFG))}</ul>` +
-      actsHtml([['reboot-box', 'Redémarrer la box'], ['call-fai', 'Appeler le FAI']]) +
-      `<p class="note">Son adresse 192.168.1.1 est la passerelle de tous les appareils de la maison.</p>`;
+    h = `<h3>Box internet</h3><ul class="state">${li('Alimentation', yes(true, 'allumée'))}${li('Voyant fibre', yes(st.fiberOk, 'vert', 'rouge, aucun signal'))}${li('Serveur DHCP', yes(st.boxDhcp, 'actif', 'désactivé'))}${li('Relais DNS', yes(st.boxDns, 'répond', 'ne répond plus'))}${li('Adresse côté maison', '192.168.1.1')}${li('Réseau de la maison', netText(OK_CFG))}</ul>` +
+      actsHtml([['reboot-box', 'Redémarrer la box'], ...(st.boxDhcp ? [] : [['dhcp-on', 'Réactiver le serveur DHCP']]), ['call-fai', 'Appeler le FAI']]) +
+      `<p class="note">Son adresse 192.168.1.1 est la passerelle et le serveur DNS des appareils de la maison ; son serveur DHCP leur donne leur adresse.</p>`;
   } else if (id === 'fiber') {
     h = `<h3>Fibre et FAI</h3><ul class="state">${li('Signal lumineux', yes(st.fiberOk, 'reçu', 'aucun'))}</ul>` +
       actsHtml([['call-fai', 'Appeler le FAI']]) +
@@ -177,32 +194,48 @@ function gameAction(k) {
       if (!st.pcCable) { st.pcCable = true; useful = true; text = "Câble rebranché : le voyant du port s'allume."; }
       else text = 'Le câble était déjà bien branché.';
       break;
-    case 'reboot-pc': text = 'Le PC redémarre… et le problème est toujours là.'; break;
+    case 'reboot-pc': // au démarrage, un PC en DHCP redemande une adresse
+      if (st.pc.mode === 'dhcp' && !st.pc.lease && st.boxDhcp) { st.pc.lease = true; useful = true; text = `Le PC redémarre et redemande une adresse : le serveur DHCP de la box lui donne ${HOME.lease.ip}.`; }
+      else text = 'Le PC redémarre… et le problème est toujours là.';
+      break;
+    case 'renew':
+      if (st.pc.mode !== 'dhcp') text = "Le PC est en adresse fixe : il n'a pas d'adresse à redemander.";
+      else if (!st.boxDhcp) text = `Le PC redemande une adresse… aucun serveur DHCP ne répond : il reste en ${pcConfig(st, HOME).ip}.`;
+      else if (st.pc.lease) text = `Le PC renouvelle son bail : il garde ${HOME.lease.ip}. Ça ne change rien.`;
+      else { st.pc.lease = true; useful = true; text = `Le PC redemande une adresse : le serveur DHCP de la box lui donne ${HOME.lease.ip}.`; }
+      break;
+    case 'dhcp-on':
+      st.boxDhcp = true; useful = true;
+      text = 'Le serveur DHCP de la box est réactivé. Un appareil resté en 169.254 doit maintenant redemander une adresse.';
+      break;
     case 'reboot-laptop': text = "Le portable redémarre. Ça n'a rien changé."; break;
     case 'reboot-console': text = "La console redémarre. Ça n'a rien changé."; break;
     case 'power-sw': st.switchOn = true; useful = true; text = 'Le switch est rallumé : ses voyants clignotent à nouveau.'; break;
     case 'reboot-sw': text = 'Le switch redémarre… rien ne change.'; break;
-    case 'reboot-box': text = st.fiberOk ? 'La box redémarre… rien ne change.' : 'La box redémarre… le voyant fibre reste rouge.'; break;
+    case 'reboot-box':
+      if (!st.boxDns) { st.boxDns = true; useful = true; text = 'La box redémarre : son relais DNS répond de nouveau.'; }
+      else text = st.fiberOk ? 'La box redémarre… rien ne change.' : 'La box redémarre… le voyant fibre reste rouge.';
+      break;
     case 'call-fai':
       if (!st.fiberOk) { st.fiberOk = true; useful = true; text = 'Le FAI confirme une coupure dans le quartier. La ligne est rétablie : le voyant fibre repasse au vert.'; }
       else text = 'Le FAI ne voit aucun incident sur ta ligne.';
       break;
     case 'apply': {
-      const next = {};
-      for (const f of FIELDS) next[f] = ($('#g-f-' + f) || {}).value || st.pc[f];
-      let changed = 0, fixed = 0, broken = 0;
-      for (const f of FIELDS) {
-        if (next[f] === st.pc[f]) continue;
-        changed++;
-        if (next[f] === OK_CFG[f]) fixed++;
-        else if (st.pc[f] === OK_CFG[f]) broken++;
-      }
+      const next = editedPc();
       G.editing = false;
-      if (!changed) { renderEq(); renderCoach(); result('Aucune modification.', 'info'); return; }
+      if (next.mode === st.pc.mode && FIELDS.every(f => next[f] === st.pc[f])) { renderEq(); renderCoach(); result('Aucune modification.', 'info'); return; }
+      // champs faux en adresse fixe (en DHCP, c'est la box qui donne les valeurs)
+      const wrong = p => (p.mode === 'dhcp' ? [] : FIELDS.filter(f => p[f] !== OK_CFG[f]));
+      const before = { ok: !!simulate(st, 'pc', HOME).ok, faults: faultsOf(st, OK_CFG), wrong: wrong(st.pc) };
       st.pc = next;
-      if (broken) text = 'Attention : cette modification crée un nouveau problème.';
-      else if (fixed) { useful = true; text = 'Configuration modifiée.'; }
-      else text = 'Configuration modifiée, mais ça ne règle rien.';
+      const okAfter = !!simulate(st, 'pc', HOME).ok;
+      const noLease = next.mode === 'dhcp' && !next.lease ? ' Le PC est passé en DHCP, mais aucun serveur ne répond : il se donne une adresse en 169.254.' : '';
+      // un champ juste devient faux, ou un test qui passait ne passe plus : nouveau problème
+      if (wrong(next).some(f => !before.wrong.includes(f)) || (before.ok && !okAfter)) text = 'Attention : cette modification crée un nouveau problème.' + noLease;
+      else if ((okAfter && !before.ok) || faultsOf(st, OK_CFG) < before.faults) {
+        useful = true;
+        text = next.mode === 'dhcp' ? `Le PC passe en DHCP : la box lui donne ${HOME.lease.ip}.` : 'Configuration modifiée.';
+      } else text = noLease ? noLease.trim() : 'Configuration modifiée, mais ça ne règle rien.';
       break;
     }
     default: return;
@@ -278,9 +311,9 @@ async function gameTest(from) {
   setTools(false);
   renderEq();
   renderCoach();
-  const r = simulate(G.st, from, REF);
+  const r = simulate(G.st, from, HOME);
   const who = from === 'pc' ? 'le PC fixe' : 'le portable';
-  result(`<b>Test en cours depuis ${who}…</b>Un paquet de test (ping) part vers Internet.`, 'info');
+  result(`<b>Test en cours depuis ${who}…</b>Il demande d'abord l'adresse de exemple.fr au serveur DNS, puis un paquet de test (ping) part vers le serveur.`, 'info');
   try { await animateTest(from, r); } catch (e) { if (e !== CANCEL) console.error(e); return; }
   if (run !== G.run) return;
   G.busy = false;
@@ -405,13 +438,13 @@ function initGame() {
   $('#g-test-laptop').addEventListener('click', () => gameTest('laptop'));
   $$('.inspect .chip').forEach(c => c.addEventListener('click', () => gameInspect(c.dataset.eq)));
   $('#g-eq').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && !b.disabled) gameAction(b.dataset.act); });
-  // pendant la modification, la ligne « Réseau » suit les valeurs choisies
+  // pendant la modification, la ligne « Réseau » suit les valeurs choisies ; en DHCP, c'est la box qui les donne
   $('#g-eq').addEventListener('change', e => {
     if (!e.target.matches('select')) return;
-    const c = {};
-    for (const f of FIELDS) c[f] = ($('#g-f-' + f) || {}).value || G.st.pc[f];
+    const next = editedPc();
+    for (const f of FIELDS) { const s = $('#g-f-' + f); if (s) s.disabled = next.mode === 'dhcp'; }
     const net = $('#g-net');
-    if (net) net.textContent = netText(c);
+    if (net) net.textContent = netText(pcConfig({ ...G.st, pc: next }, HOME));
   });
   renderHud();
 }

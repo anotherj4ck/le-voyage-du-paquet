@@ -15,6 +15,7 @@ const { netRange, usableText } = VDP.net;
 const IP = {
   srv: '203.0.113.10', boxW: '198.51.100.42', boxL: '192.168.1.1',
   pc: '192.168.1.10', laptop: '192.168.1.11', console: '192.168.1.12',
+  fai: '198.51.100.1', r2: '192.0.2.10', r1: '192.0.2.20', dnsFai: '198.51.100.53', // routeurs FAI, Paris, Amsterdam ; DNS du FAI
 };
 const MAC = {
   srv: '00:50:56:a1:0c:21',
@@ -120,15 +121,33 @@ const STEPS = [
 /* =====================================================================
    Jeu : configurations de référence et valeurs proposées dans l'éditeur
    ===================================================================== */
-const OK_CFG = { ip: '192.168.1.10', mask: '255.255.255.0', gw: '192.168.1.1' };
-const LAPTOP_CFG = { ip: '192.168.1.11', mask: '255.255.255.0', gw: '192.168.1.1' };
-const CONSOLE_CFG = { ip: '192.168.1.12', mask: '255.255.255.0', gw: '192.168.1.1' };
-const FIELD_LABEL = { ip: 'Adresse IP', mask: 'Masque', gw: 'Passerelle' };
+// Le PC est en DHCP, comme dans une vraie maison : la box lui donne 192.168.1.10. Ses valeurs manuelles
+// (ip, mask, gw, dns) ne servent que s'il passe en adresse fixe ; les bonnes valeurs sont les mêmes.
+const OK_CFG = { mode: 'dhcp', lease: true, ip: '192.168.1.10', mask: '255.255.255.0', gw: '192.168.1.1', dns: '192.168.1.1' };
+const LAPTOP_CFG = { mode: 'dhcp', ip: '192.168.1.11', mask: '255.255.255.0', gw: '192.168.1.1', dns: '192.168.1.1' };
+const CONSOLE_CFG = { mode: 'dhcp', ip: '192.168.1.12', mask: '255.255.255.0', gw: '192.168.1.1', dns: '192.168.1.1' };
+const FIELD_LABEL = { mode: 'Adressage', ip: 'Adresse IP', mask: 'Masque', gw: 'Passerelle', dns: 'Serveur DNS' };
+const MODE_LABEL = { dhcp: 'Automatique (DHCP)', manuel: 'Manuel (adresse fixe)' };
 // valeurs proposées dans l'éditeur : la bonne, la valeur actuelle, et des pièges qui ne marchent pas
 const CHOICES = {
-  ip: ['192.168.1.10', '192.168.2.10', '192.168.0.10', '192.168.1.1'],
+  ip: ['192.168.1.10', '192.168.2.10', '192.168.0.10', '192.168.1.1', '192.168.1.12'],
   mask: ['255.255.255.0', '255.255.255.248', '255.255.255.252'],
   gw: ['192.168.1.1', '192.168.1.254', '192.168.1.100', '192.168.1.10'],
+  dns: ['192.168.1.1', '198.51.100.53', '203.0.113.53', '192.168.1.254'],
+};
+
+// Le réseau tel que la simulation le voit : test du jeu et invite de commandes
+const HOME = {
+  boxIp: IP.boxL, boxWan: IP.boxW,
+  lease: { ip: IP.pc, mask: '255.255.255.0', gw: IP.boxL, dns: IP.boxL }, // ce que le DHCP de la box donne au PC
+  laptop: LAPTOP_CFG,
+  devices: { [IP.laptop]: 'le portable', [IP.console]: 'la console' },  // les autres appareils du LAN
+  ttl: { [IP.boxL]: 64, [IP.laptop]: 128, [IP.console]: 64 },           // TTL de leurs réponses au ping
+  dnsServers: [IP.dnsFai],                                              // le DNS du FAI, joignable par Internet
+  names: { 'exemple.fr': IP.srv },                                      // le seul nom de cet Internet simulé
+  hops: [{ ip: IP.fai, ms: 5, ttl: 254 }, { ip: IP.r2, ms: 11, ttl: 253 }, { ip: IP.r1, ms: 13, ttl: 252 }], // routeurs traversés
+  srv: { ip: IP.srv, ms: 14, ttl: 60 },                                 // 64 au départ du serveur, moins 4 routeurs (voir la visite)
+  pcMac: MAC.pc, pcName: 'PC-FIXE',
 };
 
 /* =====================================================================
@@ -168,21 +187,21 @@ const TICKETS = [
   {
     id: 'ip', from: 'Sophie',
     text: "Mon fils a modifié les réglages réseau du PC pour un jeu. Depuis, plus d'Internet sur le PC. Le portable va bien.",
-    apply: (st, v) => { st.pc.ip = v || '192.168.2.10'; },
+    apply: (st, v) => { Object.assign(st.pc, { mode: 'manuel', ip: v || '192.168.2.10' }); },
     explain: st0 => `Le PC était en ${st0.pc.ip} : il n'était plus dans le même réseau que la box (192.168.1.x). Il ne pouvait donc pas joindre sa passerelle.`,
     reflex: 'Compare avec un appareil qui marche : la ligne qui diffère montre la panne.',
   },
   {
     id: 'mask', from: 'Paul',
     text: "Un ami a configuré le PC fixe à la main. Depuis, il n'a jamais eu Internet. Le portable, lui, marche.",
-    apply: (st, v) => { st.pc.mask = v || '255.255.255.248'; },
+    apply: (st, v) => { Object.assign(st.pc, { mode: 'manuel', mask: v || '255.255.255.248' }); },
     explain: st0 => { const [a, b] = netRange(st0.pc); return `Avec le masque ${st0.pc.mask}, le PC croyait que son réseau allait de ${a} à ${b} (utilisables : ${usableText(st0.pc)}). La box (192.168.1.1) était donc « hors réseau » pour lui.`; },
     reflex: 'Le masque dit qui sont les voisins directs. Avec 255.255.255.0, tout 192.168.1.x est dans le même réseau.',
   },
   {
     id: 'gw', from: 'Nadia',
     text: "On a changé de box le mois dernier. Le portable marche, mais le PC fixe, réglé en adresse fixe, n'a plus Internet.",
-    apply: (st, v) => { st.pc.gw = v || '192.168.1.254'; },
+    apply: (st, v) => { Object.assign(st.pc, { mode: 'manuel', gw: v || '192.168.1.254' }); },
     explain: st0 => `La passerelle pointait vers ${st0.pc.gw}${st0.pc.gw === '192.168.1.254' ? ", l'adresse de l'ancienne box" : ''}. Le PC demandait « Qui a ${st0.pc.gw} ? » et personne ne répondait.`,
     reflex: "La passerelle doit être l'adresse de la box sur le réseau local : ici 192.168.1.1.",
   },
@@ -196,7 +215,7 @@ const COACH = [
   { text: '<b>Étape 4 sur 4.</b> Après une intervention, on vérifie toujours : refais un test depuis le PC.', target: '#g-test-pc', next: 'solved' },
 ];
 
-return { IP, MAC, INFO, STEPS, OK_CFG, LAPTOP_CFG, CONSOLE_CFG, FIELD_LABEL, CHOICES, TICKETS, VARIANTS, RANDOM_TEXT, COACH };
+return { IP, MAC, INFO, STEPS, OK_CFG, LAPTOP_CFG, CONSOLE_CFG, FIELD_LABEL, MODE_LABEL, CHOICES, HOME, TICKETS, VARIANTS, RANDOM_TEXT, COACH };
 }());
 
 if (typeof module !== 'undefined') module.exports = VDP.data;

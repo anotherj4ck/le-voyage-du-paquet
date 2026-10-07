@@ -6,10 +6,10 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const net = require('../js/net.js');
 
-// Le réseau de la maison, comme dans la scène : la box en 192.168.1.1, le PC en .10, le portable en .11
+// Le réseau de la maison, comme dans la scène : la box en 192.168.1.1 (passerelle et DNS), le PC en .10, le portable en .11
 const BOX = '192.168.1.1';
-const PC_OK = { ip: '192.168.1.10', mask: '255.255.255.0', gw: BOX };
-const REF = { boxIp: BOX, laptop: { ip: '192.168.1.11', mask: '255.255.255.0', gw: BOX } };
+const PC_OK = { ip: '192.168.1.10', mask: '255.255.255.0', gw: BOX, dns: BOX }; // adresse fixe correcte
+const REF = { boxIp: BOX, laptop: { ip: '192.168.1.11', mask: '255.255.255.0', gw: BOX, dns: BOX } };
 const pc = change => ({ ...PC_OK, ...change });                     // configuration du PC modifiée
 const home = change => Object.assign(net.freshState(PC_OK), change); // état de la maison modifié
 
@@ -113,6 +113,91 @@ describe('simulate : où s\'arrête le test de connexion, panne par panne', () =
   it('panne physique et panne de configuration ensemble : la couche 1 passe en premier', () => {
     const r = net.simulate(home({ pcCable: false, pc: pc({ ip: '192.168.2.10' }) }), 'pc', REF);
     assert.match(r.msg, /câble réseau débranché/);
+  });
+});
+
+// Réseau de référence complet : ce que donne le DHCP de la box, appareils du LAN, DNS du FAI, carte du PC
+const HOME = {
+  ...REF,
+  lease: { ip: '192.168.1.10', mask: '255.255.255.0', gw: BOX, dns: BOX },
+  devices: { '192.168.1.11': 'le portable', '192.168.1.12': 'la console' },
+  dnsServers: ['198.51.100.53'],
+  pcMac: '3c:52:82:4f:a1:7e',
+};
+const DHCP_PC = { mode: 'dhcp', lease: true, ...PC_OK };                     // le PC comme à la maison : en DHCP, avec un bail
+const dhcpHome = change => Object.assign(net.freshState(DHCP_PC), change);
+const manual = change => dhcpHome({ pc: { ...DHCP_PC, mode: 'manuel', ...change } });
+
+describe('Adressage DHCP et adresse de secours (APIPA)', () => {
+  it('l\'adresse APIPA est en 169.254, tirée de la carte réseau', () => {
+    assert.equal(net.apipaFor('3c:52:82:4f:a1:7e'), '169.254.161.126');
+    assert.equal(net.apipaFor('3C-52-82-4F-A1-7E'), '169.254.161.126');
+  });
+  it('PC en DHCP avec un bail : il utilise l\'adresse donnée par la box, le test passe', () => {
+    assert.equal(net.pcConfig(dhcpHome({}), HOME).ip, '192.168.1.10');
+    assert.deepEqual(net.simulate(dhcpHome({}), 'pc', HOME), { ok: true });
+  });
+  it('serveur DHCP coupé, PC sans bail : adresse 169.254 sans passerelle, arrêt au PC ; le portable garde son bail', () => {
+    const st = dhcpHome({ boxDhcp: false, pc: { ...DHCP_PC, lease: false } });
+    const c = net.pcConfig(st, HOME);
+    assert.deepEqual([c.ip, c.mask, c.gw, c.apipa], ['169.254.161.126', '255.255.0.0', '', true]);
+    const r = net.simulate(st, 'pc', HOME);
+    assert.equal(r.stop, 'pc');
+    assert.match(r.msg, /serveur DHCP n'a pas répondu.*169\.254\.161\.126.*APIPA/);
+    assert.deepEqual(net.simulate(st, 'laptop', HOME), { ok: true });
+  });
+  it('serveur DHCP réparé mais adresse pas encore redemandée : toujours en 169.254', () => {
+    const r = net.simulate(dhcpHome({ pc: { ...DHCP_PC, lease: false } }), 'pc', HOME);
+    assert.match(r.msg, /toujours en 169\.254\.161\.126 : il n'a pas encore redemandé d'adresse/);
+  });
+  it('une seule panne : la box (DHCP coupé), ou le PC (bail à redemander)', () => {
+    assert.equal(net.faultsOf(dhcpHome({ boxDhcp: false, pc: { ...DHCP_PC, lease: false } }), PC_OK), 1);
+    assert.equal(net.faultsOf(dhcpHome({ pc: { ...DHCP_PC, lease: false } }), PC_OK), 1);
+  });
+});
+
+describe('DNS : l\'adresse IP répond, mais le nom ne se traduit plus', () => {
+  it('DNS vers une adresse du réseau qui n\'existe pas : « Qui a 192.168.1.254 ? », arrêt au switch', () => {
+    const r = net.simulate(manual({ dns: '192.168.1.254' }), 'pc', HOME);
+    assert.deepEqual([r.stop, r.arp, r.dns], ['sw', '192.168.1.254', true]);
+  });
+  it('DNS vers un serveur d\'Internet qui ne répond pas : la question se perd sur Internet ; le portable marche', () => {
+    const st = manual({ dns: '203.0.113.53' });
+    const r = net.simulate(st, 'pc', HOME);
+    assert.deepEqual([r.stop, r.dns], ['r2', true]);
+    assert.match(r.msg, /serveur DNS 203\.0\.113\.53.*aucune réponse/);
+    assert.deepEqual(net.simulate(st, 'laptop', HOME), { ok: true });
+  });
+  it('relais DNS de la box en panne : arrêt à la box, pour le PC comme pour le portable', () => {
+    const st = dhcpHome({ boxDns: false });
+    assert.deepEqual([net.simulate(st, 'pc', HOME).stop, net.simulate(st, 'laptop', HOME).stop], ['box', 'box']);
+    assert.equal(net.faultsOf(st, PC_OK), 1);
+  });
+  it('le DNS du FAI, mis à la main, fonctionne', () => {
+    assert.deepEqual(net.simulate(manual({ dns: '198.51.100.53' }), 'pc', HOME), { ok: true });
+  });
+  it('un appareil du réseau n\'est pas un serveur DNS', () => {
+    assert.match(net.simulate(manual({ dns: '192.168.1.11' }), 'pc', HOME).msg, /192\.168\.1\.11 est le portable, pas un serveur DNS/);
+  });
+  it('sans serveur DNS du tout : arrêt au PC', () => {
+    assert.equal(net.simulate(manual({ dns: '' }), 'pc', HOME).stop, 'pc');
+  });
+});
+
+describe('Conflit d\'adresses avec un autre appareil du réseau', () => {
+  it('configProblem repère l\'appareil qui a déjà l\'adresse', () => {
+    assert.equal(net.configProblem(pc({ ip: '192.168.1.12' }), BOX, HOME.devices), 'Conflit d\'adresses : 192.168.1.12 est déjà utilisée par la console.');
+  });
+  it('le PC qui prend l\'adresse de la console est arrêté ; le portable marche', () => {
+    const st = manual({ ip: '192.168.1.12' });
+    const r = net.simulate(st, 'pc', HOME);
+    assert.equal(r.stop, 'pc');
+    assert.match(r.msg, /déjà utilisée par la console/);
+    assert.deepEqual(net.simulate(st, 'laptop', HOME), { ok: true });
+  });
+  it('une adresse fixe libre et correcte n\'est pas une panne', () => {
+    assert.deepEqual(net.simulate(manual({}), 'pc', HOME), { ok: true });
+    assert.equal(net.faultsOf(manual({}), PC_OK), 0);
   });
 });
 

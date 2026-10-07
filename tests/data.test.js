@@ -7,7 +7,7 @@ const assert = require('node:assert/strict');
 const net = require('../js/net.js');
 const data = require('../js/data.js');
 
-const REF = { boxIp: data.IP.boxL, laptop: data.LAPTOP_CFG };
+const REF = data.HOME; // le réseau tel que la simulation le voit
 const fresh = () => net.freshState(data.OK_CFG);
 const broken = (ticket, variant) => { const st = fresh(); ticket.apply(st, variant); return st; };
 
@@ -38,7 +38,7 @@ describe('Tickets du jeu', () => {
       });
       it('le test depuis le portable distingue panne du PC et panne commune', () => {
         const st = broken(t);
-        const shared = !st.switchOn || !st.fiberOk; // le switch et la fibre servent à tous les appareils
+        const shared = !st.switchOn || !st.fiberOk || !st.boxDns; // switch, fibre et DNS de la box servent à tous
         assert.equal(net.simulate(st, 'laptop', REF).ok === true, !shared);
       });
       it('a un message, une explication et un réflexe', () => {
