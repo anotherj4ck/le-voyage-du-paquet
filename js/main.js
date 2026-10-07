@@ -5,10 +5,10 @@
 (() => {
 'use strict';
 const {
-  $, clamp, HAS3D, tickTweens, updaters, viewport, applyTheme, OVERLAY, applyViewShift,
+  $, HAS3D, tickTweens, updaters, viewport, applyTheme, OVERLAY, applyViewShift,
   resize, render, rig, snapRig, closeFiche, buildWorld,
 } = VDP.scene;
-const { state: tour, STEPS, goStep, initTour, setPaused, stopTour } = VDP.tour;
+const { state: tour, goStep, initTour, setPaused, stopTour } = VDP.tour;
 const { initGame, enterGame, exitGame, tagClick } = VDP.game;
 
 /* =====================================================================
@@ -49,8 +49,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-function start(data) {
-  data = data || {};
+function start() {
   resize();
   if (HAS3D) {
     buildWorld(tagClick);
@@ -86,17 +85,11 @@ function start(data) {
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); goStep(tour.i - 1); }
   });
   document.addEventListener('keyup', e => { if (e.key === ' ' && eatSpaceUp) { eatSpaceUp = false; e.preventDefault(); } });
-  tour.i = Number.isInteger(data.step) ? clamp(data.step, 0, STEPS.length - 1) : 0;
-  const first = data.mode === 'game' || data.mode === 'tour' ? data.mode : (location.hash === '#jeu' ? 'game' : 'tour');
+  const first = location.hash === '#jeu' ? 'game' : 'tour';
   setMode(first);
   if (HAS3D) snapRig();
   requestAnimationFrame(t => { lastT = t; requestAnimationFrame(frame); });
 }
 
-const hot = window.claude && window.claude.hot;
-if (hot && typeof hot.snapshot === 'function') {
-  try { hot.snapshot(() => ({ mode: VDP.mode, step: tour.i })); } catch (e) { /* hôte sans rechargement à chaud */ }
-}
-if (hot && typeof hot.ready === 'function') hot.ready(start);
-else start((hot && hot.data) || {});
+start();
 })();
