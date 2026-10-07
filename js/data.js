@@ -214,11 +214,11 @@ const TICKETS = [
   },
   {
     id: 'dns', from: 'Inès',
-    text: "Plus aucun site ne s'ouvre sur le PC fixe : le navigateur dit qu'il ne trouve pas l'adresse du site. Pourtant Discord marche, je parle avec mes amis en ce moment ! Mon frère a changé un réglage pour « accélérer Internet ».",
+    text: "Mon frère a changé un réglage du PC fixe pour « accélérer Internet » pendant que j'étais sur Discord. Depuis, aucun nouveau site ne s'ouvre : le navigateur dit qu'il ne trouve pas l'adresse. Pourtant Discord, ouvert avant, marche toujours : je parle avec mes amis en ce moment !",
     apply: (st, v) => { if (v === 'box') st.boxDns = false; else Object.assign(st.pc, { mode: 'manuel', dns: v || '203.0.113.53' }); },
     explain: st0 => (st0.boxDns === false
-      ? "Le relais DNS de la box était planté : plus aucun appareil ne pouvait traduire un nom (exemple.fr) en adresse IP. Les applications déjà connectées marchaient encore, car elles n'avaient pas besoin de redemander d'adresse. Redémarrer la box l'a relancé."
-      : `Le PC interrogeait le serveur DNS ${st0.pc.dns}, qui ne répond pas : il ne pouvait plus traduire les noms (exemple.fr) en adresses IP. Discord marchait encore, car sa connexion était déjà ouverte : il n'avait pas besoin de redemander d'adresse.`),
+      ? "Le relais DNS de la box était planté : plus aucun appareil ne pouvait traduire un nom (exemple.fr) en adresse IP, donc aucun nouveau site ne s'ouvrait. Les applications ouvertes avant la panne, elles, gardaient leur connexion déjà établie. Redémarrer la box a relancé le relais DNS."
+      : `Le PC interrogeait le serveur DNS ${st0.pc.dns}, qui ne répond pas : il ne pouvait plus traduire les noms (exemple.fr) en adresses IP, donc aucun nouveau site ne s'ouvrait. Discord a lui aussi besoin du DNS pour se connecter, mais il était ouvert avant le changement : sa connexion, déjà établie, continuait de fonctionner.`),
     reflex: "Si l'adresse IP répond mais pas le nom (ping 203.0.113.10 marche, ping exemple.fr échoue), c'est le DNS.",
   },
   {
@@ -237,7 +237,7 @@ const VARIANTS = {
 };
 const RANDOM_TEXT = {
   default: "Le PC fixe n'a plus Internet depuis qu'on a touché à ses réglages réseau. Le portable, lui, marche.",
-  dns: "Les sites ne s'ouvrent plus : le navigateur ne trouve pas leur adresse. Pourtant, les applications déjà connectées marchent encore.",
+  dns: "Aucun nouveau site ne s'ouvre : le navigateur ne trouve pas leur adresse. Pourtant, les applications ouvertes avant le problème marchent toujours.",
 };
 const COACH = [
   { text: '<b>Étape 1 sur 4.</b> On commence toujours par tester. Clique sur « Tester depuis le PC ».', target: '#g-test-pc', next: 'test:pc:ko' },
