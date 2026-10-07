@@ -491,7 +491,7 @@ strong{font-weight:700}
       <div><dt>WAN</dt><dd>Wide Area Network, le réseau étendu : Internet et le réseau de ton fournisseur d'accès. Côté WAN, ta box n'a qu'une seule adresse IP publique.</dd></div>
       <div><dt>LAN</dt><dd>Local Area Network, le réseau de ta maison. Les appareils y ont des adresses IP privées, comme 192.168.1.10.</dd></div>
       <div><dt>Adresse IP</dt><dd>Adresse logique (couche 3) d'une machine. Elle reste la même pendant tout le trajet, sauf quand un NAT la traduit.</dd></div>
-      <div><dt>Adresse MAC</dt><dd>Adresse physique (couche 2) de la carte réseau, 48 bits notés en hexadécimal. Elle ne sert que sur un tronçon : elle change à chaque routeur.</dd></div>
+      <div><dt>Adresse MAC</dt><dd>Adresse physique (couche 2) de la carte réseau, 48 bits notés en hexadécimal. Elle ne sert que sur un tronçon : la carte garde la sienne, mais chaque routeur réécrit les adresses MAC source et destination de l'en-tête de trame.</dd></div>
       <div><dt>Port</dt><dd>Numéro de 0 à 65 535 qui désigne le programme destinataire : 443 pour HTTPS, 22 pour SSH, 3389 pour le bureau à distance.</dd></div>
       <div><dt>NAT / PAT</dt><dd>Traduction d'adresse. La box remplace l'IP privée et le port de chaque connexion sortante par son IP publique et un port à elle, puis note la correspondance pour le retour.</dd></div>
       <div><dt>IP privée</dt><dd>Plages réservées aux réseaux locaux (RFC 1918) : 10.0.0.0/8, 172.16.0.0/12 et 192.168.0.0/16. Elles ne sont jamais routées sur Internet.</dd></div>
@@ -1909,7 +1909,7 @@ const STEPS = [
     title: 'Internet, de routeur en routeur', chip: [3, 'Couche 3 · Réseau'],
     body: `<p>Chaque routeur fait le même travail : il lit l'<strong>IP de destination</strong>, cherche la meilleure route dans sa <strong>table de routage</strong>, puis passe le paquet au routeur suivant.</p>
 <p>À chaque saut, il jette l'ancien en-tête Ethernet et en met un neuf, avec de nouvelles adresses MAC. Il baisse aussi le <strong>TTL</strong> de 1 : à zéro, le paquet serait détruit.</p>
-<div class="keyline">Les adresses IP restent les mêmes de bout en bout. Les adresses MAC changent à chaque routeur.</div>`,
+<div class="keyline">Les adresses IP restent les mêmes de bout en bout. Les adresses MAC source et destination de la trame, elles, sont réécrites par chaque routeur.</div>`,
     setup() { placeAt('srv'); layers(ALL); setPK(RESP, ALL); where(WHERE.srv); setTable(routeTable('r1')); },
     cam() { followTP(19, 0.12, 0.98); },
     async play(ctx) {
@@ -2032,7 +2032,7 @@ const STEPS = [
     title: 'Une page, des centaines de paquets', chip: [0, 'Récapitulatif'],
     body: `<p>Tu viens de suivre un seul paquet. Une page web en demande souvent des centaines, qui font tous ce trajet en quelques dizaines de millisecondes.</p>
 <ul><li><strong>Encapsulation</strong> au départ, <strong>désencapsulation</strong> à l'arrivée.</li>
-<li>Les <strong>routeurs</strong> lisent l'IP et refont la trame : les MAC changent à chaque saut, le TTL baisse.</li>
+<li>Les <strong>routeurs</strong> lisent l'IP et refont la trame : les MAC de la trame changent à chaque saut, le TTL baisse.</li>
 <li>La <strong>box</strong> traduit l'adresse publique en adresse privée grâce à sa table NAT.</li>
 <li>Le <strong>switch</strong> ne lit que la MAC de destination.</li></ul>
 <div class="keyline">Les couleurs suivent les couches : bleu pour la couche 3 (les routeurs, l'en-tête IP), orange pour la couche 2 (le switch, la trame).</div>
