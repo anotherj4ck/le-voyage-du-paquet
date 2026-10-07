@@ -2155,10 +2155,12 @@ const freshState = () => ({ pcCable: true, switchOn: true, fiberOk: true, pc: { 
 function simulate(from) {
   const st = G.st;
   const cfg = from === 'pc' ? st.pc : LAPTOP_CFG;
-  if (from === 'pc' && !st.pcCable) return { stop: 'pc', msg: 'Le paquet ne quitte même pas le PC : la carte réseau signale « câble réseau débranché ».' };
+  // Sans lien physique (câble débranché, ou switch éteint en face), la carte voit « média déconnecté » : rien ne part
+  if ((from === 'pc' && !st.pcCable) || !st.switchOn) {
+    return { stop: from, msg: `Le paquet ne quitte même pas ${from === 'pc' ? 'le PC' : 'le portable'} : la carte réseau signale « câble réseau débranché » (média déconnecté).` };
+  }
   const pb = from === 'pc' ? configProblem(cfg) : null;
   if (pb) return { stop: 'pc', msg: pb };
-  if (!st.switchOn) return { stop: 'sw', msg: 'Le paquet part vers le switch… et plus rien : le switch ne transmet rien.' };
   if (cfg.gw !== IP.boxL) return { stop: 'sw', arp: cfg.gw, msg: `Pour sortir, le PC cherche sa passerelle et demande à tout le réseau « Qui a ${cfg.gw} ? ». Personne ne répond : aucun appareil n'a cette adresse.` };
   if (!st.fiberOk) return { stop: 'box', msg: "La box reçoit le paquet mais ne peut pas l'envoyer sur Internet : la fibre ne reçoit aucun signal." };
   return { ok: true };
@@ -2177,7 +2179,7 @@ const TICKETS = [
     id: 'switch', from: 'Karim',
     text: "Plus rien ne marche à la maison : ni le PC, ni le portable, ni la console. Pourtant la box a l'air allumée.",
     apply: st => { st.switchOn = false; },
-    explain: () => 'Le switch était éteint. Tous les appareils branchés dessus perdaient le réseau en même temps.',
+    explain: () => 'Le switch était éteint. Sans signal en face, chaque appareil branché dessus affichait « câble réseau débranché », alors que les câbles étaient bien en place.',
     reflex: "Quand tous les appareils sont touchés, cherche l'équipement qu'ils partagent : switch, box ou ligne.",
   },
   {
