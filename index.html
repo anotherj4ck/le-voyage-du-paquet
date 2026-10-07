@@ -1981,7 +1981,7 @@ const STEPS = [
   {
     title: 'Le switch aiguille la trame', chip: [2, 'Couche 2 · Liaison'],
     body: `<p>La trame entre par le port 1 du switch. Pour l'aiguiller, il lit la <strong>MAC de destination</strong> et consulte sa <strong>table MAC</strong> : <code>3c:52:82:4f:a1:7e</code> se trouve derrière le port 2. Cette table, il la remplit tout seul en notant la MAC source de chaque trame qui arrive.</p>
-<p>Il envoie la trame sur ce port uniquement, sans rien y changer. Face à une MAC inconnue, il l'enverrait sur tous les ports (inondation, ou <em>flooding</em>).</p>
+<p>Il envoie la trame sur ce port uniquement, sans rien y changer. Face à une MAC inconnue, il l'enverrait sur tous les autres ports (inondation, ou <em>flooding</em>).</p>
 <div class="keyline">Le switch n'a pas besoin d'adresse IP pour travailler : il reste en couche 2.</div>`,
     setup() { placeAt('box'); layers(ALL); setPK(R_LAN, ALL); where(WHERE.box); setTable(macTable()); },
     cam() { followTP(15, 0.18, 1.0); },
@@ -2295,7 +2295,7 @@ function renderEq() {
   } else if (id === 'sw') {
     h = `<h3>Switch</h3><ul class="state">${li('Alimentation', yes(st.switchOn, 'allumé', 'éteint'))}${li('Voyants des ports', yes(st.switchOn, 'ils clignotent', 'tous éteints'))}${li('Port 2 (PC fixe)', yes(st.switchOn && st.pcCable, 'lien actif', 'pas de lien'))}</ul>` +
       actsHtml([st.switchOn ? ['reboot-sw', 'Redémarrer le switch'] : ['power-sw', 'Rallumer le switch']]) +
-      `<p class="note">Un switch n'a pas d'adresse IP : il relie les appareils de la maison à la box.</p>`;
+      `<p class="note">Ce switch (non administrable) n'a pas d'adresse IP : il relie les appareils de la maison à la box.</p>`;
   } else if (id === 'box') {
     h = `<h3>Box internet</h3><ul class="state">${li('Alimentation', yes(true, 'allumée'))}${li('Voyant fibre', yes(st.fiberOk, 'vert', 'rouge, aucun signal'))}${li('Adresse côté maison', '192.168.1.1')}${li('Réseau de la maison', '192.168.1.0 à .255')}</ul>` +
       actsHtml([['reboot-box', 'Redémarrer la box'], ['call-fai', 'Appeler le FAI']]) +
