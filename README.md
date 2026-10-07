@@ -122,13 +122,11 @@ Pour rester lisible, la scène simplifie quelques points :
 
 ## Licence
 
-Le dépôt utilise deux licences, selon la nature de ce qu'il contient :
-
-| Quoi | Licence | Fichier |
-|------|---------|---------|
-| Le code : HTML, CSS, JavaScript | MIT | [LICENSE](LICENSE) |
-| Les contenus pédagogiques : textes des étapes, fiches, glossaire, scénarios et tickets du jeu | CC BY-NC-SA 4.0 | [LICENSE-CONTENU](LICENSE-CONTENU) |
+| Quoi | Conditions | Fichier |
+|------|------------|---------|
+| Le code : HTML, CSS, JavaScript | Licence MIT | [LICENSE](LICENSE) |
+| Les contenus pédagogiques : textes des étapes, fiches, glossaire, scénarios et tickets du jeu | Tous droits réservés, autorisation gratuite sur demande | [LICENSE-CONTENU](LICENSE-CONTENU) |
 
 Pour l'instant, code et contenus sont dans le même fichier `index.html` : c'est la nature de chaque partie qui fixe sa licence, pas le fichier.
 
-En pratique, on peut réutiliser et adapter les contenus pour enseigner, sans usage commercial, à condition de citer l'auteur (anotherj4ck) et de partager ses adaptations sous la même licence.
+**Vous voulez utiliser le Voyage du Paquet avec vos apprenants ?** C'est gratuit, il suffit de demander : [CONTACT]. Et pour apprendre en autonomie sur le site en ligne, rien à demander : c'est libre.

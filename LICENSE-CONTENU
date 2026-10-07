@@ -1,60 +1,11 @@
-Licence des contenus pédagogiques
-=================================
+Contenus pédagogiques du « Voyage du Paquet »
+Copyright (c) 2026 anotherj4ck. Tous droits réservés.
 
-Le Voyage du Paquet
-Copyright (c) 2026 anotherj4ck
+Sont concernés : les textes des étapes de la visite guidée, les fiches mémo, le glossaire, les fiches d'équipements, ainsi que les scénarios, tickets, explications et réflexes du jeu « Trouve la panne ».
+Le code source (HTML, CSS, JavaScript) n'est pas concerné : il est distribué sous licence MIT (voir LICENSE).
 
-Les contenus pédagogiques de ce dépôt sont mis à disposition selon les termes
-de la licence Creative Commons Attribution - Utilisation non commerciale -
-Partage dans les mêmes conditions 4.0 International (CC BY-NC-SA 4.0).
+Consulter le site en ligne pour se former à titre personnel est libre et ne demande aucune autorisation.
 
+Toute autre utilisation (projection ou utilisation dans une formation, reproduction, adaptation, traduction, diffusion, intégration dans un autre support ou un autre produit), totale ou partielle, nécessite l'autorisation écrite préalable de l'auteur, sous réserve des exceptions prévues par la loi (articles L122-4 et L122-5 du Code de la propriété intellectuelle).
 
-Ce qui est sous CC BY-NC-SA 4.0
--------------------------------
-
-- les textes de la visite guidée : titres, récits et phrases clés des 10 étapes ;
-- les fiches des équipements (rôle, couche, adresses) ;
-- les fiches mémo : « Qui regarde quoi ? », « L'encapsulation en un coup
-  d'œil » et le glossaire ;
-- les scénarios et tickets du jeu « Trouve la panne » : récits des
-  utilisateurs, explications, réflexes à retenir, guide pas à pas ;
-- les notes du pied de page (adresses utilisées, simplifications).
-
-
-Ce qui n'est pas sous CC BY-NC-SA 4.0
--------------------------------------
-
-- le code (HTML, CSS, JavaScript), sous licence MIT : voir le fichier LICENSE ;
-- les bibliothèques et polices de tiers, qui gardent leur propre licence :
-  voir la section « Crédits » du README.
-
-Aujourd'hui, code et contenus sont réunis dans le même fichier index.html :
-la licence dépend de la nature de chaque partie, pas du fichier qui la contient.
-
-
-En résumé
----------
-
-Vous pouvez copier, distribuer, projeter et adapter ces contenus, à trois
-conditions :
-
-- Attribution (BY) : citer l'auteur (anotherj4ck), donner un lien vers la
-  source et vers la licence, et indiquer si des modifications ont été faites ;
-- Utilisation non commerciale (NC) : l'utilisation ne doit pas avoir
-  principalement pour but d'obtenir un avantage commercial ou une
-  compensation financière ;
-- Partage dans les mêmes conditions (SA) : vos adaptations doivent être
-  diffusées sous la même licence.
-
-Ce résumé ne remplace pas la licence. Textes officiels :
-
-- résumé de la licence : https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr
-- code juridique : https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.fr
-
-
-Exemple d'attribution
----------------------
-
-« Le Voyage du Paquet » par anotherj4ck
-(https://github.com/anotherj4ck/le-voyage-du-paquet),
-sous licence CC BY-NC-SA 4.0.
+Les autorisations sont accordées gratuitement, au cas par cas. Pour en faire la demande : [CONTACT]. Précisez qui vous êtes, l'usage envisagé et le public concerné. Chaque autorisation est personnelle, ne peut pas être transmise à un tiers et ne vaut que pour l'usage décrit dans la demande.
