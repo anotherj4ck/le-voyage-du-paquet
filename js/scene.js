@@ -1055,7 +1055,7 @@ function render(dt) {
 }
 
 return {
-  $, $$, clamp, lerp, REDUCED, ease, esc, cssVar, clone, HAS3D,
+  $, $$, clamp, lerp, REDUCED, ease, esc, cssVar, clone, isDark, HAS3D,
   CANCEL, makeCtx, tween, wait, kill, tickTweens, swallow, FX, updaters,
   viewport, V3, applyTheme, OVERLAY, applyViewShift, setViewShift, resize, render,
   rig, setView, followObj, snapRig, aspectK, fitView, view,

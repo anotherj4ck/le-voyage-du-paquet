@@ -1,11 +1,11 @@
-/* Le Voyage du Paquet : initialisation. Bascule entre la visite et le jeu, boucle d'animation,
-   raccourcis clavier, démarrage. Chargé en dernier : net, data, scene, tour et game sont prêts.
+/* Le Voyage du Paquet : initialisation. Bascule entre la visite et le jeu, thème clair / sombre,
+   boucle d'animation, raccourcis clavier, démarrage. Chargé en dernier : net, data, scene, tour et game sont prêts.
    Copyright (c) 2026 anotherj4ck. Code sous licence MIT : voir LICENSE.
    Les textes pédagogiques qu'il contient relèvent de LICENSE-CONTENU (tous droits réservés). */
 (() => {
 'use strict';
 const {
-  $, HAS3D, tickTweens, updaters, viewport, applyTheme, OVERLAY, applyViewShift,
+  $, isDark, HAS3D, tickTweens, updaters, viewport, applyTheme, OVERLAY, applyViewShift,
   resize, render, rig, snapRig, closeFiche, buildWorld,
 } = VDP.scene;
 const { state: tour, goStep, initTour, setPaused, stopTour } = VDP.tour;
@@ -38,6 +38,25 @@ function setMode(m) {
 
 VDP.setMode = setMode;
 
+/* =====================================================================
+   Thème clair / sombre : suit le système, sauf choix fait avec le bouton.
+   Le choix mémorisé est déjà appliqué dans le <head> de index.html, avant l'affichage.
+   ===================================================================== */
+const THEME_KEY = 'vdp-theme';
+function renderThemeButton() {
+  const b = $('#theme-toggle'), dark = isDark();
+  const label = dark ? 'Passer au thème clair' : 'Passer au thème sombre';
+  b.setAttribute('aria-label', label);
+  b.title = label;
+  b.querySelector('.i-moon').toggleAttribute('hidden', dark); // attribut : les éléments SVG n'ont pas de propriété .hidden
+  b.querySelector('.i-sun').toggleAttribute('hidden', !dark);
+}
+function toggleTheme() {
+  const next = isDark() ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next); // la scène 3D et le bouton suivent (MutationObserver)
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* stockage bloqué : le choix vaut pour cette visite */ }
+}
+
 let ELAPSED = 0, lastT = 0;
 function frame(now) {
   const dt = Math.min(0.05, Math.max(0, (now - lastT) / 1000));
@@ -61,10 +80,13 @@ function start() {
   initTour();
   initGame();
   const mq = matchMedia('(prefers-color-scheme: dark)');
-  if (mq.addEventListener) mq.addEventListener('change', applyTheme);
-  new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  const themeChanged = () => { applyTheme(); renderThemeButton(); };
+  if (mq.addEventListener) mq.addEventListener('change', themeChanged);
+  new MutationObserver(themeChanged).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   const relayout = () => { applyViewShift(); if (rig.onRecenter) rig.onRecenter(); };
   if (OVERLAY.addEventListener) OVERLAY.addEventListener('change', relayout);
+  $('#theme-toggle').addEventListener('click', toggleTheme);
+  renderThemeButton();
   $('#tab-tour').addEventListener('click', () => setMode('tour'));
   $('#tab-game').addEventListener('click', () => setMode('game'));
   // Raccourcis actifs quand la scène est à l'écran (sinon Espace et PageDown font défiler la page)

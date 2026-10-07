@@ -123,6 +123,10 @@ strong{font-weight:700}
 .view-ctrl{position:absolute;right:12px;bottom:12px;display:flex;gap:6px;z-index:2}
 .icon-btn{min-width:38px;height:38px;padding:0 11px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;cursor:pointer;font-weight:700;font-size:14px}
 .icon-btn:hover{border-color:var(--muted)}
+/* bouton de thème : icône à la couleur du texte, donc lisible dans les deux thèmes */
+.icon-btn.theme-btn{display:inline-grid;place-items:center;padding:0}
+.theme-btn svg{width:19px;height:19px;fill:currentColor}
+.theme-btn .i-sun path{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 .loading{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted);font-size:15px}
 
 /* ---------- panneaux ---------- */
