@@ -6,7 +6,7 @@ var VDP = (typeof window !== 'undefined' && window.VDP) || { net: require('./net
 
 VDP.data = (function () {
 'use strict';
-const { netRange, usableText } = VDP.net;
+const { netRange, usableText, apipaFor } = VDP.net;
 
 /* =====================================================================
    Adresses de la scène (plages RFC 5737 pour Internet, RFC 1918 pour le LAN)
@@ -204,6 +204,13 @@ const TICKETS = [
     apply: (st, v) => { Object.assign(st.pc, { mode: 'manuel', gw: v || '192.168.1.254' }); },
     explain: st0 => `La passerelle pointait vers ${st0.pc.gw}${st0.pc.gw === '192.168.1.254' ? ", l'adresse de l'ancienne box" : ''}. Le PC demandait « Qui a ${st0.pc.gw} ? » et personne ne répondait.`,
     reflex: "La passerelle doit être l'adresse de la box sur le réseau local : ici 192.168.1.1.",
+  },
+  {
+    id: 'dhcp', from: 'Julien',
+    text: "Ce matin, le PC fixe n'a plus Internet. Hier soir, j'ai fouillé dans les réglages de la box pour la « sécuriser » et j'ai décoché des options. Le portable, resté allumé depuis hier, marche encore.",
+    apply: st => { st.boxDhcp = false; st.pc.lease = false; },
+    explain: () => `Le serveur DHCP de la box avait été désactivé. Au démarrage, le PC a demandé une adresse et personne n'a répondu : il s'est donné ${apipaFor(MAC.pc)}, une adresse de secours (APIPA) qui ne permet pas de sortir. Le portable gardait l'adresse obtenue la veille : son bail courait encore.`,
+    reflex: "Une adresse en 169.254, c'est que le DHCP n'a pas répondu. On répare le serveur DHCP, puis on redemande une adresse (ipconfig /renew).",
   },
 ];
 const VARIANTS = { ip: ['192.168.2.10', '192.168.0.10'], mask: ['255.255.255.248', '255.255.255.252'], gw: ['192.168.1.254', '192.168.1.100'] };
