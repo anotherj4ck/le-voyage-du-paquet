@@ -129,4 +129,6 @@ Pour rester lisible, la scène simplifie quelques points :
 
 Pour l'instant, code et contenus sont dans le même fichier `index.html` : c'est la nature de chaque partie qui fixe sa licence, pas le fichier.
 
-**Vous voulez utiliser le Voyage du Paquet avec vos apprenants ?** C'est gratuit, il suffit de demander : [CONTACT]. Et pour apprendre en autonomie sur le site en ligne, rien à demander : c'est libre.
+**Vous voulez utiliser le Voyage du Paquet avec vos apprenants ?** C'est gratuit, il suffit de demander : [CONTACT]. La demande concerne l'utilisation des contenus comme support de cours (projection, séance construite autour du site), ainsi que toute copie, adaptation ou rediffusion.
+
+Partager le lien du site, à des apprenants ou à qui que ce soit, est libre. Et pour apprendre en autonomie sur le site en ligne, rien à demander non plus.
