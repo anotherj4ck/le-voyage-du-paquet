@@ -498,7 +498,7 @@ strong{font-weight:700}
       <div><dt>Masque de sous-réseau</dt><dd>Indique quelle partie de l'adresse IP désigne le réseau. Avec 255.255.255.0, tous les appareils en 192.168.1.x sont des voisins directs.</dd></div>
       <div><dt>Passerelle par défaut</dt><dd>L'adresse à qui l'ordinateur confie tout ce qui sort de son réseau. À la maison, c'est la box : 192.168.1.1.</dd></div>
       <div><dt>ARP</dt><dd>Trouve la MAC qui correspond à une IP du LAN. « Qui a 192.168.1.10 ? » part à tout le monde, seul l'appareil concerné répond.</dd></div>
-      <div><dt>Ping</dt><dd>Petit paquet de test (protocole ICMP) envoyé vers une adresse. S'il revient, le chemin fonctionne ; sinon, on cherche où il s'arrête.</dd></div>
+      <div><dt>Ping</dt><dd>Petit paquet de test (protocole ICMP) envoyé vers une adresse : si la réponse revient, le chemin fonctionne. Sans réponse, prudence : beaucoup de pare-feu bloquent le ping. Pour voir où ça s'arrête, on utilise tracert.</dd></div>
       <div><dt>TTL</dt><dd>Time To Live, compteur de l'en-tête IP. Chaque routeur le baisse de 1 ; à zéro, le paquet est détruit, ce qui évite les boucles infinies.</dd></div>
       <div><dt>FCS</dt><dd>Frame Check Sequence, somme de contrôle (CRC) en fin de trame. Si un bit a été abîmé en route, la trame est jetée.</dd></div>
       <div><dt>Table de routage</dt><dd>Liste de règles « pour joindre tel réseau, sortir par telle interface ». Le routeur prend la règle la plus précise (le préfixe le plus long).</dd></div>
