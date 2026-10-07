@@ -1874,7 +1874,7 @@ const STEPS = [
       await rewrap(ctx);
       patchPK({ read: null, eth: { src: MAC.boxW, dst: MAC.faiB } });
       ringOff();
-      inspNote('Retour en accéléré : chaque routeur refait la trame et baisse le TTL.');
+      inspNote("Suite de l'aller en accéléré : chaque routeur refait la trame et baisse le TTL.");
       const hops = [
         ['box', 'fai', { eth: { src: MAC.faiA, dst: MAC.r2b }, ip: { ttl: 62 } }, FIBER_GLOW],
         ['fai', 'r2', { eth: { src: MAC.r2a, dst: MAC.r1b }, ip: { ttl: 61 } }],
