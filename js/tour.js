@@ -453,6 +453,9 @@ function goStep(i) {
   chip.textContent = st.chip[1];
   $('#step-title').textContent = st.title;
   $('#step-body').innerHTML = st.body;
+  $('#step-more-body').innerHTML = st.more || '';
+  $('#step-more').hidden = !st.more;
+  $('#step-more').open = false;
   $$('#dots button').forEach((b, j) => {
     b.classList.toggle('cur', j === i);
     b.classList.toggle('done', j < i);

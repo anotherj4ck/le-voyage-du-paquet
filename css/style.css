@@ -147,6 +147,10 @@ strong{font-weight:700}
 .keyline{margin:4px 0 12px;border-left:3px solid var(--accent);padding:7px 11px;background:var(--surface-2);border-radius:0 8px 8px 0;font-size:14px}
 .step-table:empty{display:none}
 .step-table{margin:2px 0 10px}
+/* « Pour aller plus loin » : bloc fermé par défaut, même allure que l'invite de commandes du jeu */
+.more{margin:2px 0 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.more summary{cursor:pointer;padding:9px 12px;font-weight:700;font-size:14px}
+.more-body{padding:2px 12px 1px}
 .dots{display:flex;gap:4px;padding:6px 18px 0}
 .dots button{flex:1;height:16px;border:0;background:none;cursor:pointer;padding:5px 0;position:relative}
 .dots button::before{content:"";display:block;height:6px;border-radius:3px;background:var(--line)}

@@ -43,7 +43,10 @@ const INFO = {
 /* =====================================================================
    Visite guidée : les textes des 10 étapes
    id : relie le texte à ce que fait l'étape (dans le code de la visite) ;
-   chip : [numéro de couche pour la couleur, libellé]
+   chip : [numéro de couche pour la couleur, libellé] ;
+   body : l'essentiel, toujours affiché. Tout ce que l'animation montre (étiquette, ligne surlignée)
+   doit s'y comprendre sans ouvrir le bloc ;
+   more : « Pour aller plus loin », bloc fermé par défaut (pas de bloc aux étapes 1 et 10)
    ===================================================================== */
 const STEPS = [
   {
@@ -56,55 +59,65 @@ const STEPS = [
   {
     id: 'aller', title: "L'aller : ta requête sort", chip: [4, 'Couches 3 et 4'],
     body: `<p>Avant toute réponse, ton PC a envoyé une requête au serveur : « donne-moi la page d'accueil ». Elle part de <code>192.168.1.10</code>, port <code>52344</code>, vers <code>203.0.113.10</code>, port <code>443</code> (HTTPS).</p>
-<p>Juste avant, le DNS a traduit <code>exemple.fr</code> en <code>203.0.113.10</code>, puis TCP (la poignée de main en 3 temps) et TLS ont ouvert une connexion chiffrée avec le serveur.</p>
 <p>En sortant, la box remplace ton adresse privée par son adresse publique <code>198.51.100.42</code> et prend un port à elle, <code>40001</code>. Elle note la correspondance dans sa <strong>table NAT</strong>.</p>
 <div class="keyline">Retiens la ligne 40001 : c'est elle qui permettra à la réponse de retrouver ton PC.</div>`,
+    more: `<p>Avant cette requête, le DNS a traduit <code>exemple.fr</code> en <code>203.0.113.10</code>, puis TCP (la poignée de main en 3 temps) et TLS ont ouvert une connexion chiffrée avec le serveur.</p>`,
   },
   {
     id: 'emballage', title: 'Le serveur emballe sa réponse', chip: [7, 'Couches 7 → 1'],
     body: `<p>Le serveur prépare la page. Avant de l'envoyer, chaque couche du modèle TCP/IP ajoute son <strong>en-tête</strong> devant les données, comme des enveloppes glissées les unes dans les autres : c'est l'<strong>encapsulation</strong>.</p>
 <ul><li><strong>Données</strong> : la page HTML, chiffrée par TLS (le cadenas).</li>
-<li><strong>+ en-tête TCP</strong> = un <strong>segment</strong> : ports 443 → 40001.</li>
-<li><strong>+ en-tête IP</strong> = un <strong>paquet</strong> : 203.0.113.10 → 198.51.100.42.</li>
-<li><strong>+ en-tête Ethernet</strong> = une <strong>trame</strong> : les MAC du prochain saut, et le FCS à la fin pour détecter les erreurs.</li></ul>
+<li><strong>+ en-tête TCP</strong> = un <strong>segment</strong>.</li>
+<li><strong>+ en-tête IP</strong> = un <strong>paquet</strong>.</li>
+<li><strong>+ en-tête Ethernet</strong> = une <strong>trame</strong>.</li></ul>
 <div class="keyline">Le serveur répond à l'adresse qu'il a vue passer : 198.51.100.42, port 40001. Il ne connaît pas ton PC, seulement ta box.</div>`,
+    more: `<p>Ce que contient chaque en-tête :</p>
+<ul><li><strong>TCP</strong> : les ports, 443 → 40001.</li>
+<li><strong>IP</strong> : les adresses, 203.0.113.10 → 198.51.100.42.</li>
+<li><strong>Ethernet</strong> : les MAC du prochain saut, et le FCS à la fin pour détecter les erreurs.</li></ul>`,
   },
   {
     id: 'routeurs', title: 'Internet, de routeur en routeur', chip: [3, 'Couche 3 · Réseau'],
-    body: `<p>Chaque routeur fait le même travail : il lit l'<strong>IP de destination</strong>, cherche la meilleure route dans sa <strong>table de routage</strong>, puis passe le paquet au routeur suivant.</p>
-<p>À chaque saut, il jette l'ancien en-tête Ethernet et en met un neuf, avec de nouvelles adresses MAC. Il baisse aussi le <strong>TTL</strong> de 1 : à zéro, le paquet serait détruit.</p>
+    body: `<p>Chaque routeur fait le même travail : il lit l'<strong>IP de destination</strong>, cherche la meilleure route dans sa <strong>table de routage</strong>, puis passe le paquet au routeur suivant. Il baisse aussi le <strong>TTL</strong> de 1 : à zéro, le paquet serait détruit.</p>
 <div class="keyline">Les adresses IP restent les mêmes tout au long d'Internet ; seul le NAT de la box traduira l'adresse de destination. Les adresses MAC source et destination de la trame, elles, sont réécrites par chaque routeur.</div>`,
+    more: `<p>À chaque saut, il jette l'ancien en-tête Ethernet et en met un neuf, avec de nouvelles adresses MAC.</p>`,
   },
   {
     id: 'wan', title: 'Le FAI et la fibre : le WAN', chip: [3, 'Couches 1 à 3'],
-    body: `<p>Le paquet arrive chez ton fournisseur d'accès. Son routeur sait que <code>198.51.100.42</code> est au bout de ta fibre : il refait la trame et l'envoie dans ce lien. Dans la fibre, les bits voyagent sous forme d'impulsions de lumière.</p>
+    body: `<p>Le paquet arrive chez ton fournisseur d'accès, qui l'envoie dans ta fibre : les bits y voyagent sous forme d'impulsions de lumière.</p>
 <p>Tout ce qui est hors de chez toi forme le <strong>WAN</strong>, le réseau étendu. Ta box a un pied de chaque côté : une adresse <strong>publique</strong> côté WAN, une adresse <strong>privée</strong> côté LAN.</p>`,
+    more: `<p>Le routeur de ton fournisseur d'accès sait que <code>198.51.100.42</code> est au bout de ta fibre : il refait la trame et l'envoie dans ce lien.</p>`,
   },
   {
     id: 'nat', title: "La box traduit l'adresse (NAT)", chip: [4, 'Couches 3 et 4'],
     body: `<p>La box reçoit un paquet pour <code>198.51.100.42</code>, port <code>40001</code>. C'est bien son adresse, mais le paquet n'est pas pour elle.</p>
-<p>Elle cherche le port 40001 dans sa <strong>table NAT</strong>, retrouve la ligne créée à l'aller et réécrit la destination : <code>192.168.1.10</code>, port <code>52344</code>. Comme tout routeur, elle baisse aussi le TTL.</p>
+<p>Elle cherche le port 40001 dans sa <strong>table NAT</strong>, retrouve la ligne créée à l'aller et réécrit la destination : <code>192.168.1.10</code>, port <code>52344</code>.</p>`,
+    more: `<p>Comme tout routeur, elle baisse aussi le TTL.</p>
 <div class="keyline">Un paquet qui arrive sans ligne correspondante dans la table NAT est jeté : par effet de bord, cela protège le LAN. Mais le NAT n'est pas un pare-feu : la box en a un vrai en plus, un pare-feu à état.</div>`,
   },
   {
     id: 'trame', title: 'Une trame neuve pour le LAN', chip: [2, 'Couche 2 · Liaison'],
     body: `<p>Pour livrer le paquet sur le réseau local, la box a besoin de l'adresse MAC de <code>192.168.1.10</code>. Elle la trouve dans sa <strong>table ARP</strong>.</p>
-<p>Sans cette ligne, elle demanderait à tout le LAN « Qui a 192.168.1.10 ? » et seul le PC répondrait, avec sa MAC.</p>
-<p>Elle emballe alors le paquet dans une trame neuve : de <code>9c:24:72:5e:10:02</code>, sa MAC côté LAN, vers <code>3c:52:82:4f:a1:7e</code>, celle du PC.</p>`,
+<p>Elle emballe alors le paquet dans une trame neuve, de sa MAC côté LAN vers celle du PC.</p>`,
+    more: `<p>Sans cette ligne, elle demanderait à tout le LAN « Qui a 192.168.1.10 ? » et seul le PC répondrait, avec sa MAC.</p>
+<p>La trame neuve part de <code>9c:24:72:5e:10:02</code>, la MAC de la box côté LAN, vers <code>3c:52:82:4f:a1:7e</code>, celle du PC.</p>`,
   },
   {
     id: 'switch', title: 'Le switch aiguille la trame', chip: [2, 'Couche 2 · Liaison'],
-    body: `<p>La trame entre par le port 1 du switch. Pour l'aiguiller, il lit la <strong>MAC de destination</strong> et consulte sa <strong>table MAC</strong> : <code>3c:52:82:4f:a1:7e</code> se trouve derrière le port 2. Cette table, il la remplit tout seul en notant la MAC source de chaque trame qui arrive.</p>
-<p>Il envoie la trame sur ce port uniquement, sans rien y changer. Face à une MAC inconnue, il l'enverrait sur tous les autres ports (inondation, ou <em>flooding</em>).</p>
+    body: `<p>La trame entre par le port 1 du switch. Pour l'aiguiller, il lit la <strong>MAC de destination</strong> et consulte sa <strong>table MAC</strong> : <code>3c:52:82:4f:a1:7e</code> se trouve derrière le port 2.</p>
+<p>Il envoie la trame sur ce port uniquement, sans rien y changer.</p>
 <div class="keyline">Le switch n'a pas besoin d'adresse IP pour travailler : il reste en couche 2.</div>`,
+    more: `<p>Sa table MAC, il la remplit tout seul en notant la MAC source de chaque trame qui arrive.</p>
+<p>Face à une MAC inconnue, il enverrait la trame sur tous les autres ports (inondation, ou <em>flooding</em>).</p>`,
   },
   {
     id: 'deballage', title: 'Le PC déballe le paquet', chip: [7, 'Couches 1 → 7'],
     body: `<p>La carte réseau reçoit la trame, puis le système remonte les couches en retirant un en-tête à chaque étage : c'est la <strong>désencapsulation</strong>.</p>
-<ul><li>FCS correct, MAC de destination = la mienne : on retire l'en-tête Ethernet.</li>
+<ul><li>MAC de destination = la mienne : on retire l'en-tête Ethernet.</li>
 <li>IP de destination = la mienne : on retire l'en-tête IP.</li>
 <li>Port 52344 : c'est le navigateur. On retire l'en-tête TCP.</li>
 <li>TLS déchiffre les données, le navigateur affiche la page.</li></ul>`,
+    more: `<p>Avant tout, la carte vérifie le FCS, le code de contrôle placé à la fin de la trame : une trame abîmée en route serait jetée.</p>`,
   },
   {
     id: 'recap', title: 'Une page, des centaines de paquets', chip: [0, 'Récapitulatif'],
