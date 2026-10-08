@@ -109,7 +109,7 @@ const STEPS = [
   },
   {
     id: 'switch', title: 'Le switch aiguille la trame', chip: [2, 'Couche 2 · Liaison'],
-    body: `<p>La trame entre par le port 1 du switch. Pour l'aiguiller, il lit la <strong>MAC de destination</strong> et consulte sa <strong>table MAC</strong> : <code>3c:52:82:4f:a1:7e</code> se trouve derrière le port 2.</p>
+    body: `<p>La trame entre par le port 1 du switch. Pour l'aiguiller, il lit la <strong>MAC de destination</strong> et consulte sa <strong>table MAC</strong> : <code>3c:52:82:4f:a1:7e</code>, la MAC du PC, se trouve derrière le port 2.</p>
 <p>Il envoie la trame sur ce port uniquement, sans rien y changer.</p>
 <div class="keyline">Le switch n'a pas besoin d'adresse IP pour travailler : il reste en couche 2.</div>`,
     more: `<p>Sa table MAC, il la remplit tout seul en notant la MAC source de chaque trame qui arrive.</p>
