@@ -10,6 +10,32 @@ VDP.term = (function () {
 'use strict';
 const { isIp, sameNet, pcConfig } = VDP.net;
 
+/* D'où viennent les messages de Windows reproduits ici
+   1. Relevés sur un vrai Windows 11 en français, recopiés tels quels (coupures de ligne, lignes vides, apostrophes ’) :
+      - ipconfig /renew, média déconnecté : « Aucune opération ne peut être effectuée sur Ethernet lorsque
+        / son média est déconnecté. » (seul le nom de la carte change : celle du jeu s'appelle Ethernet) ;
+      - tracert vers une adresse IP sans réseau utilisable : « Détermination de l’itinéraire vers … avec un maximum
+        de 30 sauts. », puis « 1  Erreur de transmission : code 1231 », puis « Itinéraire déterminé. ».
+   2. Confirmés par des sorties réelles publiées sur des forums d'entraide (espaces et apostrophes non garantis) :
+      - ping qui répond : envoi, réponses, statistiques ; « Délai d'attente de la demande dépassé. » ;
+      - nslookup : « Serveur :   … », « Address:  … », « Réponse ne faisant pas autorité : », « Nom :    … »,
+        « DNS request timed out. », « timeout was 2 seconds. », « *** Le délai de la requête sur … est dépassé. » ;
+      - tracert qui aboutit : lignes des sauts, « Itinéraire déterminé. » ;
+      - ipconfig /all : libellés de l'en-tête et de la carte (Statut du média, Description, Adresse physique…).
+   3. Reconstitués : formulation plausible, jamais comparée mot pour mot à une sortie réelle :
+      - ipconfig /renew quand le serveur DHCP ne répond pas, et ipconfig /renew avec une adresse fixe ;
+      - ipconfig : « Adresse IPv4 d'autoconfiguration », « (préféré) », « (Dupliqué) », dates du bail ;
+      - ping : « PING : échec de la transmission. Défaillance générale. », « Impossible de joindre l'hôte de destination. »,
+        « La requête Ping n'a pas pu trouver l'hôte … » ;
+      - nslookup : sans serveur DNS joignable, « Server failed », « Non-existent domain » ;
+      - tracert : en-tête vers un nom (format des forums, apostrophe ’ alignée sur le relevé), « Impossible de résoudre
+        le nom du système cible … », « … rapports : Impossible de joindre l'hôte de destination. » ;
+      - tracert, par déduction depuis le relevé : l'en-tête sur une ligne vers une adresse IP quand le réseau marche
+        (l'Internet simulé n'a pas de noms inverses), et le code 1231 quand le PC a une adresse APIPA, une adresse
+        en double ou pas de passerelle utilisable.
+   Le message d'une carte désactivée n'est pas utilisé : aucun ticket ne désactive la carte. */
+const NIC = 'Ethernet'; // nom de la carte réseau du PC, comme dans Windows
+
 const PROMPT = 'C:\\Users\\Utilisateur>';
 const HELP = [
   'Commandes de cette invite simulée :',
@@ -108,7 +134,7 @@ const frDate = d => `${d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'nu
 const header = () => ['', 'Configuration IP de Windows', ''];
 
 function ipconfigBasic(w) {
-  const me = self(w), c = me.c, out = [...header(), '', 'Carte Ethernet Ethernet :', ''];
+  const me = self(w), c = me.c, out = [...header(), '', `Carte Ethernet ${NIC} :`, ''];
   if (!me.link) return [...out, kv(LBL.media, 'Média déconnecté'), kv(LBL.suffix, '')];
   out.push(kv(LBL.suffix, c.dhcp && !c.apipa ? 'home' : ''));
   if (c.apipa) out.push(kv(LBL.apipa, c.ip), kv(LBL.mask, c.mask), kv(LBL.gw, ''));
@@ -125,7 +151,7 @@ function ipconfigAll(w) {
     kv('   Routage IP activé . . . . . . . . : ', 'Non'),
     kv('   Proxy WINS activé . . . . . . . . : ', 'Non')];
   if (leased) out.push(kv('   Liste de recherche du suffixe DNS.: ', 'home'));
-  out.push('', 'Carte Ethernet Ethernet :', '');
+  out.push('', `Carte Ethernet ${NIC} :`, '');
   if (!me.link) out.push(kv(LBL.media, 'Média déconnecté'));
   const card = [kv(LBL.desc, CARD), kv(LBL.mac, mac), kv(LBL.dhcp, c.dhcp ? 'Oui' : 'Non'), kv(LBL.auto, 'Oui')];
   out.push(kv(LBL.suffix, leased ? 'home' : ''), ...card);
@@ -144,9 +170,9 @@ function ipconfigAll(w) {
 // ipconfig /renew : en DHCP, le PC redemande une adresse ; renew: true indique au jeu qu'il l'a obtenue
 function renew(w) {
   const { st } = w, me = self(w);
-  if (!me.link) return { lines: [...header(), 'Aucune opération ne peut être effectuée sur Ethernet lorsque son média est déconnecté.'] };
+  if (!me.link) return { lines: [...header(), `Aucune opération ne peut être effectuée sur ${NIC} lorsque`, 'son média est déconnecté.'] };
   if (st.pc.mode !== 'dhcp') return { lines: [...header(), "L'opération a échoué, car aucune carte n'est dans un état permettant cette opération."] };
-  if (!st.boxDhcp) return { lines: [...header(), "Une erreur s'est produite lors du renouvellement de l'interface Ethernet : impossible de contacter votre serveur DHCP. Le délai d'attente de la demande est dépassé."] };
+  if (!st.boxDhcp) return { lines: [...header(), `Une erreur s'est produite lors du renouvellement de l'interface ${NIC} : impossible de contacter votre serveur DHCP. Le délai d'attente de la demande est dépassé.`] };
   return { lines: ipconfigBasic({ ...w, st: { ...st, pc: { ...st.pc, lease: true } } }), renew: true };
 }
 function ipconfig(args, w) {
@@ -207,11 +233,13 @@ function tracert(args, w) {
   const r = resolve(t, w);
   if (!r.ip) return { lines: ['', `Impossible de résoudre le nom du système cible ${t}.`] };
   const { home } = w, ip = r.ip, me = self(w), c = me.c, res = reach(ip, w);
-  const lines = ['', isIp(t) ? `Détermination de l'itinéraire vers ${ip}` : `Détermination de l'itinéraire vers ${t} [${ip}]`, 'avec un maximum de 30 sauts :', ''];
+  const head = isIp(t) ? [`Détermination de l’itinéraire vers ${ip} avec un maximum de 30 sauts.`]
+    : [`Détermination de l’itinéraire vers ${t} [${ip}]`, 'avec un maximum de 30 sauts :'];
+  const lines = ['', ...head, ''];
   const done = () => ({ lines: [...lines, '', 'Itinéraire déterminé.'] });
   const lost = from => { for (let n = from; n <= 30; n++) lines.push(hopLine(n, null, "Délai d'attente de la demande dépassé.")); return done(); };
   if (/^127\./.test(ip) || (me.usable && ip === c.ip)) { lines.push(hopLine(1, 0, `${home.pcName} [${ip}]`)); return done(); }
-  if (res.fail === 'general') return { lines: [...lines, 'Impossible de contacter le pilote IP. Défaillance générale.'] };
+  if (res.fail === 'general') { lines.push('  1  Erreur de transmission : code 1231'); return done(); } // pas de réseau utilisable
   const unreachable = () => { lines.push(`  1  ${home.pcName} [${c.ip}]  rapports : Impossible de joindre l'hôte de destination.`); return done(); };
   if (sameNet(ip, c.ip, c.mask)) { if (!res.ok) return unreachable(); lines.push(hopLine(1, 0, ip)); return done(); }
   if (c.gw !== home.boxIp) return res.fail === 'unreachable' ? unreachable() : lost(1);

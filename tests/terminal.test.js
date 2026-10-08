@@ -81,6 +81,20 @@ describe('ipconfig', () => {
     assert.equal(r.renew, true);
     assert.match(r.lines.join('\n'), /Adresse IPv4.*: 192\.168\.1\.10/);
   });
+  it('ipconfig /renew, câble débranché ou switch éteint : le message relevé sur Windows 11, coupé après « lorsque »', () => {
+    for (const st of [home({ pcCable: false }), home({ switchOn: false })]) {
+      const r = out('ipconfig /renew', st);
+      assert.deepEqual(r.lines, ['', 'Configuration IP de Windows', '', 'Aucune opération ne peut être effectuée sur Ethernet lorsque', 'son média est déconnecté.']);
+      assert.equal(r.renew, undefined);
+    }
+  });
+  it('le message d\'une carte désactivée n\'apparaît dans aucun ticket', () => {
+    for (const t of data.TICKETS) {
+      for (const cmd of ['ipconfig', 'ipconfig /all', 'ipconfig /renew', 'ping 203.0.113.10', 'tracert 203.0.113.10']) {
+        assert.doesNotMatch(text(cmd, ticket(t.id)), /aucun adaptateur|état autorisé/, `${t.id} : ${cmd}`);
+      }
+    }
+  });
 });
 
 describe('ping', () => {
@@ -149,13 +163,30 @@ describe('nslookup', () => {
 describe('tracert', () => {
   it('maison normale : box, FAI, Paris, Amsterdam, serveur', () => {
     const r = out('tracert exemple.fr').lines;
-    assert.equal(r[1], "Détermination de l'itinéraire vers exemple.fr [203.0.113.10]");
+    assert.equal(r[1], 'Détermination de l’itinéraire vers exemple.fr [203.0.113.10]');
+    assert.equal(r[2], 'avec un maximum de 30 sauts :');
     const hops = r.filter(l => /^ {0,2}\d+ /.test(l)).map(l => l.trim().split(/\s+/).pop());
     assert.deepEqual(hops, ['192.168.1.1', '198.51.100.1', '192.0.2.10', '192.0.2.20', '203.0.113.10']);
     assert.equal(r.at(-1), 'Itinéraire déterminé.');
   });
-  it('format des lignes : numéro, trois mesures, hôte', () => {
-    assert.ok(out('tracert 203.0.113.10').lines.includes('  1    <1 ms    <1 ms    <1 ms  192.168.1.1'));
+  it('format des lignes : numéro, trois mesures, hôte ; vers une adresse IP, l\'en-tête tient sur une ligne', () => {
+    const r = out('tracert 203.0.113.10').lines;
+    assert.equal(r[1], 'Détermination de l’itinéraire vers 203.0.113.10 avec un maximum de 30 sauts.');
+    assert.equal(r[2], '');
+    assert.ok(r.includes('  1    <1 ms    <1 ms    <1 ms  192.168.1.1'));
+  });
+  it('câble débranché ou switch éteint : la sortie relevée sur Windows 11, code 1231', () => {
+    const relevé = ['', 'Détermination de l’itinéraire vers 203.0.113.10 avec un maximum de 30 sauts.', '', '  1  Erreur de transmission : code 1231', '', 'Itinéraire déterminé.'];
+    assert.deepEqual(out('tracert 203.0.113.10', home({ pcCable: false })).lines, relevé);
+    assert.deepEqual(out('tracert 203.0.113.10', home({ switchOn: false })).lines, relevé);
+  });
+  it('sans adresse utilisable (APIPA, adresse en double, masque qui exclut la passerelle) : même code 1231, par déduction', () => {
+    for (const id of ['dhcp', 'conflit', 'mask']) {
+      const r = out('tracert 203.0.113.10', ticket(id)).lines;
+      assert.equal(r[3], '  1  Erreur de transmission : code 1231', id);
+      assert.equal(r.at(-1), 'Itinéraire déterminé.', id);
+    }
+    assert.doesNotMatch(text('tracert 203.0.113.10', home({ pcCable: false })), /pilote IP/);
   });
   it('fibre coupée : la box répond, puis plus rien jusqu\'au 30e saut', () => {
     const r = out('tracert 203.0.113.10', home({ fiberOk: false })).lines;
