@@ -61,7 +61,8 @@ const STEPS = [
     body: `<p>Avant toute réponse, ton PC a envoyé une requête au serveur : « donne-moi la page d'accueil ». Elle part de <code>192.168.1.10</code>, port <code>52344</code>, vers <code>203.0.113.10</code>, port <code>443</code> (HTTPS).</p>
 <p>En sortant, la box remplace ton adresse privée par son adresse publique <code>198.51.100.42</code> et prend un port à elle, <code>40001</code>. Elle note la correspondance dans sa <strong>table NAT</strong>.</p>
 <div class="keyline">Retiens la ligne 40001 : c'est elle qui permettra à la réponse de retrouver ton PC.</div>`,
-    more: `<p>Avant cette requête, le DNS a traduit <code>exemple.fr</code> en <code>203.0.113.10</code>, puis TCP (la poignée de main en 3 temps) et TLS ont ouvert une connexion chiffrée avec le serveur.</p>`,
+    more: `<p>Avant cette requête, le DNS a traduit <code>exemple.fr</code> en <code>203.0.113.10</code>, puis TCP (la poignée de main en 3 temps) et TLS ont ouvert une connexion chiffrée avec le serveur.</p>
+<p>Dans le jeu, l'invite de commandes du PC fait la même demande au DNS : <code>nslookup exemple.fr</code>.</p>`,
   },
   {
     id: 'emballage', title: 'Le serveur emballe sa réponse', chip: [7, 'Couches 7 → 1'],
@@ -80,7 +81,9 @@ const STEPS = [
     id: 'routeurs', title: 'Internet, de routeur en routeur', chip: [3, 'Couche 3 · Réseau'],
     body: `<p>Chaque routeur fait le même travail : il lit l'<strong>IP de destination</strong>, cherche la meilleure route dans sa <strong>table de routage</strong>, puis passe le paquet au routeur suivant. Il baisse aussi le <strong>TTL</strong> de 1 : à zéro, le paquet serait détruit.</p>
 <div class="keyline">Les adresses IP restent les mêmes tout au long d'Internet ; seul le NAT de la box traduira l'adresse de destination. Les adresses MAC source et destination de la trame, elles, sont réécrites par chaque routeur.</div>`,
-    more: `<p>À chaque saut, il jette l'ancien en-tête Ethernet et en met un neuf, avec de nouvelles adresses MAC.</p>`,
+    more: `<p>À chaque saut, il jette l'ancien en-tête Ethernet et en met un neuf, avec de nouvelles adresses MAC.</p>
+<p>Quand plusieurs lignes de la table correspondent à la destination, le routeur prend la plus précise : ici <code>198.51.100.0/24</code> (toutes les adresses qui commencent par 198.51.100) plutôt que <code>0.0.0.0/0</code>, la route par défaut, utilisée quand aucune autre ne correspond.</p>
+<p>Le TTL empêche un paquet pris dans une boucle de tourner sans fin. La commande <code>tracert</code> s'en sert : elle envoie des paquets avec un TTL de 1, puis 2, puis 3…, et chaque routeur qui en détruit un se signale. Essaie-la dans l'invite de commandes du jeu.</p>`,
   },
   {
     id: 'wan', title: 'Le FAI et la fibre : le WAN', chip: [3, 'Couches 1 à 3'],
@@ -93,6 +96,7 @@ const STEPS = [
     body: `<p>La box reçoit un paquet pour <code>198.51.100.42</code>, port <code>40001</code>. C'est bien son adresse, mais le paquet n'est pas pour elle.</p>
 <p>Elle cherche le port 40001 dans sa <strong>table NAT</strong>, retrouve la ligne créée à l'aller et réécrit la destination : <code>192.168.1.10</code>, port <code>52344</code>.</p>`,
     more: `<p>Comme tout routeur, elle baisse aussi le TTL.</p>
+<p>Une vraie table NAT note en plus l'adresse et le port du serveur contacté (<code>203.0.113.10</code>, port <code>443</code>) : la box peut ainsi vérifier que la réponse vient bien de lui. Le tableau affiché ici est simplifié.</p>
 <div class="keyline">Un paquet qui arrive sans ligne correspondante dans la table NAT est jeté : par effet de bord, cela protège le LAN. Mais le NAT n'est pas un pare-feu : la box en a un vrai en plus, un pare-feu à état.</div>`,
   },
   {
@@ -100,6 +104,7 @@ const STEPS = [
     body: `<p>Pour livrer le paquet sur le réseau local, la box a besoin de l'adresse MAC de <code>192.168.1.10</code>. Elle la trouve dans sa <strong>table ARP</strong>.</p>
 <p>Elle emballe alors le paquet dans une trame neuve, de sa MAC côté LAN vers celle du PC.</p>`,
     more: `<p>Sans cette ligne, elle demanderait à tout le LAN « Qui a 192.168.1.10 ? » et seul le PC répondrait, avec sa MAC.</p>
+<p>« Dynamique », dans la table, veut dire que la box a appris cette ligne toute seule, par une requête ARP comme celle-ci ; elle l'effacera si elle ne sert plus pendant un moment.</p>
 <p>La trame neuve part de <code>9c:24:72:5e:10:02</code>, la MAC de la box côté LAN, vers <code>3c:52:82:4f:a1:7e</code>, celle du PC.</p>`,
   },
   {
