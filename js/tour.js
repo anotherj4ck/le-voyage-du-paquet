@@ -155,6 +155,7 @@ function setTable(html) { $('#step-table').innerHTML = html || ''; }
    ===================================================================== */
 let TP = null;                       // le paquet suivi
 const tour = { i: 0, ctx: null, speed: 1, paused: false };
+let shownStep = -1;                  // étape dont le texte est affiché
 // Pause : on fige l'animation de l'étape (vitesse 0). Changer d'étape relance la lecture.
 function setPaused(p) {
   tour.paused = !!p;
@@ -452,10 +453,18 @@ function goStep(i) {
   chip.dataset.l = st.chip[0];
   chip.textContent = st.chip[1];
   $('#step-title').textContent = st.title;
-  $('#step-body').innerHTML = st.body;
-  $('#step-more-body').innerHTML = st.more || '';
-  $('#step-more').hidden = !st.more;
-  $('#step-more').open = false;
+  // Texte réécrit seulement quand l'étape change : « Rejouer » relance l'animation
+  // sans refermer « Pour aller plus loin » ni faire remonter le panneau.
+  if (i !== shownStep) {
+    shownStep = i;
+    $('#step-body').innerHTML = st.body;
+    $('#step-more-body').innerHTML = st.more || '';
+    $('#step-more').hidden = !st.more;
+    $('#step-more').open = false;
+    $('#story-scroll').scrollTop = 0;
+    const go = $('#go-game');
+    if (go) go.addEventListener('click', () => VDP.setMode('game'));
+  }
   $$('#dots button').forEach((b, j) => {
     b.classList.toggle('cur', j === i);
     b.classList.toggle('done', j < i);
@@ -463,14 +472,11 @@ function goStep(i) {
   });
   $('#prev').disabled = i === 0;
   $('#next').textContent = i === STEPS.length - 1 ? 'Jouer →' : 'Suivant →';
-  $('#story-scroll').scrollTop = 0;
   resetScene();
   if (SCREENS.pc && i < 8) SCREENS.pc.draw('wait');
   st.setup();
   rig.onRecenter = () => st.cam();
   st.cam();
-  const go = $('#go-game');
-  if (go) go.addEventListener('click', () => VDP.setMode('game'));
   st.play(tour.ctx).catch(swallow);
 }
 
