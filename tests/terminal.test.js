@@ -169,36 +169,44 @@ describe('tracert', () => {
     assert.deepEqual(hops, ['192.168.1.1', '198.51.100.1', '192.0.2.10', '192.0.2.20', '203.0.113.10']);
     assert.equal(r.at(-1), 'Itinéraire déterminé.');
   });
-  it('format des lignes : numéro, trois mesures, hôte ; vers une adresse IP, l\'en-tête tient sur une ligne', () => {
+  // Formats relevés sur Windows 11 : en-tête sur deux lignes avec un nom, sur une ligne vers une adresse IP sans nom
+  it('en-tête : une seule ligne vers une adresse IP sans nom, deux lignes avec un nom (dont le PC lui-même)', () => {
     const r = out('tracert 203.0.113.10').lines;
-    assert.equal(r[1], 'Détermination de l’itinéraire vers 203.0.113.10 avec un maximum de 30 sauts.');
-    assert.equal(r[2], '');
-    assert.ok(r.includes('  1    <1 ms    <1 ms    <1 ms  192.168.1.1'));
+    assert.deepEqual(r.slice(0, 3), ['', 'Détermination de l’itinéraire vers 203.0.113.10 avec un maximum de 30 sauts.', '']);
+    assert.deepEqual(out('tracert 127.0.0.1').lines.slice(0, 5),
+      ['', 'Détermination de l’itinéraire vers PC-FIXE [127.0.0.1]', 'avec un maximum de 30 sauts :', '', '  1    <1 ms    <1 ms    <1 ms  PC-FIXE [127.0.0.1]']);
   });
-  it('câble débranché ou switch éteint : la sortie relevée sur Windows 11, code 1231', () => {
-    const relevé = ['', 'Détermination de l’itinéraire vers 203.0.113.10 avec un maximum de 30 sauts.', '', '  1  Erreur de transmission : code 1231', '', 'Itinéraire déterminé.'];
+  it('lignes des sauts : mêmes colonnes que le relevé (« 9     6 ms     6 ms     7 ms  » puis l\'hôte)', () => {
+    const r = out('tracert 203.0.113.10').lines;
+    assert.ok(r.includes('  1    <1 ms    <1 ms    <1 ms  192.168.1.1'));
+    assert.ok(r.includes('  2     5 ms     6 ms     5 ms  198.51.100.1'));
+  });
+  it('fibre coupée : la box répond, puis « Délai d’attente de la demande dépassé. » jusqu\'au 30e saut', () => {
+    const r = out('tracert 203.0.113.10', home({ fiberOk: false })).lines;
+    assert.ok(r.includes('  2     *        *        *     Délai d’attente de la demande dépassé.'));
+    assert.ok(r.some(l => l.startsWith(' 30     *        *        *     Délai d’attente')));
+    assert.equal(r.at(-1), 'Itinéraire déterminé.');
+  });
+  it('câble débranché ou switch éteint : le PC signale lui-même l\'hôte injoignable, comme dans le relevé', () => {
+    const relevé = ['', 'Détermination de l’itinéraire vers 203.0.113.10 avec un maximum de 30 sauts.', '',
+      '  1     *        *     192.168.1.10  rapports : Impossible de joindre l’hôte de destination.', '', 'Itinéraire déterminé.'];
     assert.deepEqual(out('tracert 203.0.113.10', home({ pcCable: false })).lines, relevé);
     assert.deepEqual(out('tracert 203.0.113.10', home({ switchOn: false })).lines, relevé);
+    assert.doesNotMatch(text('tracert 203.0.113.10', home({ pcCable: false })), /code 1231|pilote IP/);
   });
-  it('sans adresse utilisable (APIPA, adresse en double, masque qui exclut la passerelle) : même code 1231, par déduction', () => {
+  it('mauvaise passerelle : même ligne « rapports », par déduction (le PC signale aussi l\'échec)', () => {
+    assert.ok(out('tracert 203.0.113.10', ticket('gw')).lines.includes('  1     *        *     192.168.1.10  rapports : Impossible de joindre l’hôte de destination.'));
+  });
+  it('ni adresse ni route utilisable (APIPA, adresse en double, passerelle hors du réseau) : code 1231, par déduction', () => {
     for (const id of ['dhcp', 'conflit', 'mask']) {
       const r = out('tracert 203.0.113.10', ticket(id)).lines;
       assert.equal(r[3], '  1  Erreur de transmission : code 1231', id);
       assert.equal(r.at(-1), 'Itinéraire déterminé.', id);
     }
-    assert.doesNotMatch(text('tracert 203.0.113.10', home({ pcCable: false })), /pilote IP/);
-  });
-  it('fibre coupée : la box répond, puis plus rien jusqu\'au 30e saut', () => {
-    const r = out('tracert 203.0.113.10', home({ fiberOk: false })).lines;
-    assert.ok(r.includes("  2     *        *        *     Délai d'attente de la demande dépassé."));
-    assert.ok(r.some(l => l.startsWith(' 30 ')));
   });
   it('ticket DNS : impossible de résoudre le nom, mais l\'adresse se trace', () => {
     const st = ticket('dns');
     assert.match(text('tracert exemple.fr', st), /Impossible de résoudre le nom du système cible exemple\.fr\./);
     assert.match(text('tracert 203.0.113.10', st), /Itinéraire déterminé\./);
-  });
-  it('mauvaise passerelle : le PC signale l\'hôte injoignable', () => {
-    assert.match(text('tracert 203.0.113.10', ticket('gw')), /PC-FIXE \[192\.168\.1\.10\]  rapports : Impossible de joindre l'hôte de destination\./);
   });
 });

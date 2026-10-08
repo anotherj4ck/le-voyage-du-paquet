@@ -14,13 +14,17 @@ const { isIp, sameNet, pcConfig } = VDP.net;
    1. Relevés sur un vrai Windows 11 en français, recopiés tels quels (coupures de ligne, lignes vides, apostrophes ’) :
       - ipconfig /renew, média déconnecté : « Aucune opération ne peut être effectuée sur Ethernet lorsque
         / son média est déconnecté. » (seul le nom de la carte change : celle du jeu s'appelle Ethernet) ;
-      - tracert vers une adresse IP sans réseau utilisable : « Détermination de l’itinéraire vers … avec un maximum
-        de 30 sauts. », puis « 1  Erreur de transmission : code 1231 », puis « Itinéraire déterminé. ».
+      - tracert, en-tête : sur deux lignes quand la cible a un nom (« Détermination de l’itinéraire vers nom [adresse] »
+        / « avec un maximum de 30 sauts : »), sur une seule ligne vers une adresse IP sans nom (« … avec un maximum
+        de 30 sauts. ») ;
+      - tracert, lignes des sauts : numéro, trois mesures (« <1 ms », « 6 ms » ou « * ») et hôte ;
+        « Délai d’attente de la demande dépassé. » ; « Itinéraire déterminé. » ;
+      - tracert, média déconnecté (câble débranché, switch éteint) : « 1     *        *     adresse du PC  rapports :
+        Impossible de joindre l’hôte de destination. », le PC signalant lui-même l'échec avec l'adresse qu'il garde.
    2. Confirmés par des sorties réelles publiées sur des forums d'entraide (espaces et apostrophes non garantis) :
       - ping qui répond : envoi, réponses, statistiques ; « Délai d'attente de la demande dépassé. » ;
       - nslookup : « Serveur :   … », « Address:  … », « Réponse ne faisant pas autorité : », « Nom :    … »,
         « DNS request timed out. », « timeout was 2 seconds. », « *** Le délai de la requête sur … est dépassé. » ;
-      - tracert qui aboutit : lignes des sauts, « Itinéraire déterminé. » ;
       - ipconfig /all : libellés de l'en-tête et de la carte (Statut du média, Description, Adresse physique…).
    3. Reconstitués : formulation plausible, jamais comparée mot pour mot à une sortie réelle :
       - ipconfig /renew quand le serveur DHCP ne répond pas, et ipconfig /renew avec une adresse fixe ;
@@ -28,12 +32,12 @@ const { isIp, sameNet, pcConfig } = VDP.net;
       - ping : « PING : échec de la transmission. Défaillance générale. », « Impossible de joindre l'hôte de destination. »,
         « La requête Ping n'a pas pu trouver l'hôte … » ;
       - nslookup : sans serveur DNS joignable, « Server failed », « Non-existent domain » ;
-      - tracert : en-tête vers un nom (format des forums, apostrophe ’ alignée sur le relevé), « Impossible de résoudre
-        le nom du système cible … », « … rapports : Impossible de joindre l'hôte de destination. » ;
-      - tracert, par déduction depuis le relevé : l'en-tête sur une ligne vers une adresse IP quand le réseau marche
-        (l'Internet simulé n'a pas de noms inverses), et le code 1231 quand le PC a une adresse APIPA, une adresse
-        en double ou pas de passerelle utilisable.
-   Le message d'une carte désactivée n'est pas utilisé : aucun ticket ne désactive la carte. */
+      - tracert : « Impossible de résoudre le nom du système cible … » ;
+      - tracert, par déduction depuis les relevés : la ligne « rapports » aussi quand la passerelle ou un voisin
+        ne répond pas (même mécanisme) ; le nom du PC devant 127.0.0.1 et sa propre adresse (le réseau simulé n'a
+        pas d'autres noms inverses) ; « 1  Erreur de transmission : code 1231 », relevé avec une carte désactivée,
+        quand le PC n'a ni adresse ni route utilisable (adresse APIPA, adresse en double, passerelle hors du réseau).
+   Le message d'une carte désactivée pour ipconfig /renew n'est pas utilisé : aucun ticket ne désactive la carte. */
 const NIC = 'Ethernet'; // nom de la carte réseau du PC, comme dans Windows
 
 const PROMPT = 'C:\\Users\\Utilisateur>';
@@ -233,14 +237,19 @@ function tracert(args, w) {
   const r = resolve(t, w);
   if (!r.ip) return { lines: ['', `Impossible de résoudre le nom du système cible ${t}.`] };
   const { home } = w, ip = r.ip, me = self(w), c = me.c, res = reach(ip, w);
-  const head = isIp(t) ? [`Détermination de l’itinéraire vers ${ip} avec un maximum de 30 sauts.`]
-    : [`Détermination de l’itinéraire vers ${t} [${ip}]`, 'avec un maximum de 30 sauts :'];
+  const itself = /^127\./.test(ip) || (me.usable && ip === c.ip); // le PC lui-même : seule adresse du réseau simulé qui a un nom
+  // En-tête sur deux lignes quand la cible a un nom, sur une seule ligne vers une adresse IP sans nom
+  const name = !isIp(t) ? t : itself ? home.pcName : '';
+  const head = name ? [`Détermination de l’itinéraire vers ${name} [${ip}]`, 'avec un maximum de 30 sauts :']
+    : [`Détermination de l’itinéraire vers ${ip} avec un maximum de 30 sauts.`];
   const lines = ['', ...head, ''];
   const done = () => ({ lines: [...lines, '', 'Itinéraire déterminé.'] });
-  const lost = from => { for (let n = from; n <= 30; n++) lines.push(hopLine(n, null, "Délai d'attente de la demande dépassé.")); return done(); };
-  if (/^127\./.test(ip) || (me.usable && ip === c.ip)) { lines.push(hopLine(1, 0, `${home.pcName} [${ip}]`)); return done(); }
-  if (res.fail === 'general') { lines.push('  1  Erreur de transmission : code 1231'); return done(); } // pas de réseau utilisable
-  const unreachable = () => { lines.push(`  1  ${home.pcName} [${c.ip}]  rapports : Impossible de joindre l'hôte de destination.`); return done(); };
+  const lost = from => { for (let n = from; n <= 30; n++) lines.push(hopLine(n, null, 'Délai d’attente de la demande dépassé.')); return done(); };
+  // Le PC signale lui-même l'hôte injoignable, après deux essais sans réponse
+  const unreachable = () => { lines.push(`  1     *        *     ${c.ip}  rapports : Impossible de joindre l’hôte de destination.`); return done(); };
+  if (itself) { lines.push(hopLine(1, 0, `${home.pcName} [${ip}]`)); return done(); }
+  if (!me.link) return unreachable();                                                                    // média déconnecté
+  if (res.fail === 'general') { lines.push('  1  Erreur de transmission : code 1231'); return done(); } // ni adresse ni route utilisable
   if (sameNet(ip, c.ip, c.mask)) { if (!res.ok) return unreachable(); lines.push(hopLine(1, 0, ip)); return done(); }
   if (c.gw !== home.boxIp) return res.fail === 'unreachable' ? unreachable() : lost(1);
   lines.push(hopLine(1, 0, ip === home.boxWan ? home.boxWan : home.boxIp));
