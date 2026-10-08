@@ -296,7 +296,7 @@ const ACTIONS = {
       await rewrap(ctx);
       patchPK({ read: null, eth: { src: MAC.boxW, dst: MAC.faiB } });
       ringOff();
-      inspNote("Suite de l'aller en accéléré : chaque routeur refait la trame et baisse le TTL.");
+      inspNote("Suite de l'aller en accéléré : à chaque routeur, les adresses MAC de la trame et le TTL changent. Pourquoi ? Réponse à l'étape 4.");
       const hops = [
         ['box', 'fai', { eth: { src: MAC.faiA, dst: MAC.r2b }, ip: { ttl: 62 } }, FIBER_GLOW],
         ['fai', 'r2', { eth: { src: MAC.r2a, dst: MAC.r1b }, ip: { ttl: 61 } }],
