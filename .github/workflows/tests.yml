@@ -1,0 +1,29 @@
+# Lance les tests unitaires (npm test) à chaque push et à chaque pull request.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+# Le workflow ne fait que lire le code : aucun droit en écriture sur le dépôt
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      # aucune dépendance à installer : les tests n'utilisent que le lanceur intégré de Node
+      - name: Lancer les tests
+        shell: bash # active pipefail : un test en échec fait échouer l'étape, malgré le tee
+        run: npm test | tee resultats.txt
+      # Garde-fou : si le motif ne trouvait aucun fichier, node --test réussirait avec « 0 test »
+      - name: Vérifier que des tests ont tourné
+        run: |
+          n=$(grep -oE "(ℹ|#) pass [0-9]+" resultats.txt | grep -oE "[0-9]+$" || true)
+          if [ "${n:-0}" -eq 0 ]; then echo "::error title=Tests::aucun test n'a tourné"; exit 1; fi
+          echo "::notice title=Tests::$n tests réussis"
